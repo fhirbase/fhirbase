@@ -1,0 +1,13 @@
+version: '2'
+services:
+  db:
+    image: postgres:10.4
+    container_name: fhirbase
+    volumes:
+       - .volumes:/var/lib/postgresql/data
+    ports:
+      - "2345:5432"
+    environment:
+      POSTGRES_USER: fhirbase
+      POSTGRES_DB: fhirbase
+      POSTGRES_PASSWORD: fhirbase
