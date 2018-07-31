@@ -1,0 +1,15 @@
+#!/bin/sh
+
+version=$1
+initscript="init/fhirbase-${version}.sql"
+
+shift
+echo "Init fhirbase-$version.sql"
+
+if [ -f ${initscript} ]; then
+  cat  $initscript | psql
+  echo '\dt' | psql
+else
+  echo "Do not know this version: ${version}, pick one of:"
+  ls init/*.sql | sed 's/init\/fhirbase-//g' | sed 's/.sql//g'
+fi

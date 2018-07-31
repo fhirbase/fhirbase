@@ -5,3 +5,16 @@
 * [Gitter Chat](https://gitter.im/fhirbase/fhirbase)
 * [Google Group](https://groups.google.com/forum/#!forum/fhirbase)
 * [StackOverflow](???)
+
+
+## Development
+
+```bash
+source .env
+
+docker-compose up -d
+docker ps
+
+psql 
+
+```
