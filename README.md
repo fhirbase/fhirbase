@@ -2,7 +2,7 @@
 
 * [Documentation](https://fhirbase.gitbook.io/project/)
 * [Demo](http://fhirbase.github.io/)
-* [Gitter Chat](https://gitter.im/fhirbase/fhirbase)
+* [Chat](https://chat.fhir.org/#narrow/stream/16-fhirbase)
 * [Google Group](https://groups.google.com/forum/#!forum/fhirbase)
 * [StackOverflow](???)
 
