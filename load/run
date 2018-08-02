@@ -35,7 +35,7 @@ group.add_argument(
 
 if __name__ == '__main__':
     if not os.path.isfile('aidboxconv.jar'):
-        raise RuntimeError('You don\'t have `aidboxconv,jar` installed')
+        raise RuntimeError('You don\'t have `aidboxconv.jar` installed')
 
     # TODO: install requirements: requests
     # TODO: install aidboxconv
