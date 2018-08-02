@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+import argparse
+
+parser = argparse.ArgumentParser(description='Load data into fhirbase')
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument(
+    'files', metavar='file', nargs='*', default=[],
+    help='load files in .json or .ndjson format (can be in archive)')
+group.add_argument(
+    '-b', '--bulk', metavar='url',
+    dest='bulk', action='store',
+    help='load files from external bulk API')
+group.add_argument(
+    '-s', '--synthea', metavar='directory',
+    dest='synthea', action='store',
+    help='load files from synthea output directory')
+group.add_argument(
+    '-e', '--external',
+    metavar='url',
+    dest='external', action='store',
+    help='load files from external URL '
+         '(in .json or .ndjson format, also can be in archive)')
+
+args = parser.parse_args()
