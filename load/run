@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
 import argparse
-import json
-import logging
-import zipfile
-from subprocess import Popen, PIPE
-import io
+import os
 
-import requests
+from loader import iter_lines_from_external, iter_lines_from_files
+from importer import import_lines
 
-logger = logging.getLogger()
-
-
-# TODO: install requirements: requests
-# TODO: install aidboxconv
 
 parser = argparse.ArgumentParser(description='Load data into fhirbase')
 parser.add_argument('-d', '--dbname', required=True,
@@ -41,161 +33,25 @@ group.add_argument(
          '(in .json or .ndjson format, also can be in archive)')
 
 
-args = parser.parse_args()
+if __name__ == '__main__':
+    if not os.path.isfile('aidboxconv.jar'):
+        raise RuntimeError('You don\'t have `aidboxconv,jar` installed')
 
+    # TODO: install requirements: requests
+    # TODO: install aidboxconv
 
-def isndjson(filename):
-    return filename.endswith('.ndjson')
+    args = parser.parse_args()
 
+    if args.files:
+        import_lines(
+            args.dbname, args.fhir_version, iter_lines_from_files(args.files))
 
-def isjson(filename):
-    return filename.endswith('.json')
+    if args.bulk:
+        pass
 
+    if args.external:
+        import_lines(
+            args.dbname, args.fhir_version, iter_lines_from_external(args.external))
 
-def iszip(filename):
-    return filename.endswith('.zip')
-
-
-def dumpjson(res):
-    return json.dumps(res, separators=(',', ':'))
-
-
-def loadjson(jsonstr):
-    return json.loads(jsonstr)
-
-
-def prepare_json(jsonstr):
-    """
-    Processes Bundle or another resource and
-    returns its ndjson representation as list
-    """
-    res = loadjson(jsonstr)
-
-    resource_type = res.get('resourceType', None)
-    if not resource_type:
-        return []
-
-    if resource_type == 'Bundle' and 'entry' in res:
-        return [dumpjson(item['resource'])
-                for item in res['entry']
-                if 'resource' in item]
-    else:
-        return [dumpjson(res)]
-
-
-def iter_lines_from_files(files, openfn=open):
-    """
-    Generator which yield lines for each file from `files`.
-    Input files can have format .ndjson, .json or .zip
-    """
-    for filename in files:
-        try:
-            mode = 'rb' if iszip(filename) else 'r'
-            with openfn(filename, mode) as fd:
-                if isndjson(filename):
-                    for line in fd:
-                        yield line.rstrip('\n')
-                elif isjson(filename):
-                    for line in prepare_json(fd.read()):
-                        yield line
-                elif iszip(filename):
-                    with zipfile.ZipFile(fd) as zf:
-                        for line in iter_lines_from_files(
-                                zf.namelist(), zf.open):
-                            yield line
-                else:
-                    logger.warn('Unknown file format for {0}'.format(filename))
-        except FileNotFoundError:
-            logger.warn('Cannot open file {0}'.format(filename))
-
-
-def iter_lines_from_external(url):
-    with requests.get(args.external, stream=True) as resp:
-        if resp.status_code == 200:
-            if isndjson(url):
-                for line in resp.iter_lines():
-                    yield line
-            elif isjson(url):
-                for line in prepare_json(resp.content):
-                    yield line
-            elif iszip(url):
-                buf = io.BytesIO(resp.content)
-                with zipfile.ZipFile(buf) as zf:
-                    for line in iter_lines_from_files(zf.namelist(), zf.open):
-                        yield line
-            else:
-                logger.warn('Unknown file format for {0}'.format(url))
-
-        else:
-            logger.warn('Cannot fetch url {0}'.format(args.external))
-
-
-def import_lines(iterator):
-    def gen_psql_cmd(cmd):
-        return ['/usr/bin/env', 'psql', '-d', args.dbname,
-                '-c', cmd]
-
-    create_transaction_cmd = gen_psql_cmd(
-        'insert into transaction(resource) values(\'{}\') returning id')
-
-    with Popen(create_transaction_cmd, stdout=PIPE) as proc:
-        # TODO: exec psql by pg module
-        txid = proc.stdout.read().decode().split('\n')[2].strip()
-
-    # TODO: create temp table import
-    """
-    create table import (id varchar(250), txid int, resource_type varchar(250), resource text);
-    """
-    # TODO: create trigger
-    """
-    CREATE OR REPLACE FUNCTION transform_resource()
-    RETURNS trigger
-    LANGUAGE plpgsql
-    AS $BODY$
-    BEGIN
-        execute format('insert into %s (id, txid, ts, resource_type, status, resource) values($1, $2, now(), $3, cast ($4 as resource_status), cast ($5 as jsonb)) on conflict do nothing', lower(NEW.resource_type))
-        using NEW.id, NEW.txid, NEW.resource_type, 'created', NEW.resource;
-    
-        RETURN NULL;
-    END
-    $BODY$;
-    
-    CREATE TRIGGER test_trigger
-    BEFORE INSERT
-    ON import
-    FOR EACH ROW
-    EXECUTE PROCEDURE transform_resource();
-    """
-
-    conv_cmd = ['java', '-jar', 'aidboxconv.jar', txid, 'fhir-{0}'.format(
-        args.fhir_version)]
-    copy_cmd = gen_psql_cmd(
-        'copy import (id, txid, resource_type, resource) '
-        'from stdin delimiter \',\'')
-
-    total = 0
-    with Popen(conv_cmd, stdin=PIPE, stdout=PIPE) as convproc, \
-            Popen(copy_cmd, stdin=convproc.stdout, stdout=PIPE):
-        for line in iterator:
-            convproc.stdin.write(line.encode())
-            convproc.stdin.write(b'\n')
-            total += 1
-        convproc.stdin.close()
-
-    print('{0} entries imported'.format(total))
-
-
-if args.files:
-    import_lines(iter_lines_from_files(args.files))
-
-
-if args.bulk:
-    pass
-
-
-if args.external:
-    import_lines(iter_lines_from_external(args.external))
-
-
-if args.synthea:
-    pass
+    if args.synthea:
+        pass
