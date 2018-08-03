@@ -52,6 +52,14 @@ def prepare_json(jsonstr):
         return [dumpjson(res)]
 
 
+def make_zip_openfn(zipfile):
+    """
+    Zipfile only opens file in binary mode but we want to work with text
+    See https://stackoverflow.com/q/5627954
+    """
+    return lambda name, mode: io.TextIOWrapper(zipfile.open(name, mode))
+
+
 def iter_lines_from_files(files, openfn=open):
     """
     Generator which yield lines for each file from `files`.
@@ -70,7 +78,7 @@ def iter_lines_from_files(files, openfn=open):
                 elif iszip(filename):
                     with zipfile.ZipFile(fd) as zf:
                         for line in iter_lines_from_files(
-                                zf.namelist(), zf.open):
+                                zf.namelist(), make_zip_openfn(zf)):
                             yield line
                 else:
                     logger.warning(
