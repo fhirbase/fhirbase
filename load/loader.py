@@ -99,7 +99,8 @@ def iter_lines_from_external(url):
             elif iszip(url):
                 buf = io.BytesIO(resp.content)
                 with zipfile.ZipFile(buf) as zf:
-                    for line in iter_lines_from_files(zf.namelist(), zf.open):
+                    for line in iter_lines_from_files(
+                            zf.namelist(), make_zip_openfn(zf)):
                         yield line
             else:
                 logger.warning('Unknown file format for {0}'.format(url))
