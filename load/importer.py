@@ -1,3 +1,4 @@
+import os
 import psycopg2
 from subprocess import Popen, PIPE
 from threading import Thread
@@ -41,10 +42,17 @@ def db_copy_from(cursor, convout):
             "from stdin csv quote e\'\\x01\' delimiter e\'\\x02\'", convout)
 
 
-def import_lines(dbname, fhir_version, iterator):
-    dbconn = psycopg2.connect(dbname=dbname, user="fhirbase",
-            password="fhirbase", host="localhost", port="2345")
+def db_connect(dbname):
+    pguser = os.getenv("PGUSER", "fhirbase")
+    pgpassword = os.getenv("PGPASSWORD", "fhirbase")
+    pghost = os.getenv("PGHOST", "localhost")
+    pgport = os.getenv("PGPORT", "2345")
+    return psycopg2.connect(dbname=dbname, user=pguser,
+            password=pgpassword, host=pghost, port=pgport)
 
+
+def import_lines(dbname, fhir_version, iterator):
+    dbconn = db_connect(dbname)
     try:
         with dbconn:
             cursor = dbconn.cursor()
