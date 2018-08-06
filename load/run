@@ -3,6 +3,7 @@ import argparse
 import os
 
 from loader import iter_lines_from_external, iter_lines_from_files
+from loader import iter_lines_from_synthea
 from importer import import_lines
 
 
@@ -54,4 +55,5 @@ if __name__ == '__main__':
             args.dbname, args.fhir_version, iter_lines_from_external(args.external))
 
     if args.synthea:
-        pass
+        import_lines(
+            args.dbname, args.fhir_version, iter_lines_from_synthea(args.synthea))

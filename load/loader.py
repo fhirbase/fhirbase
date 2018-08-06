@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+import re
 import zipfile
 import io
 
@@ -107,3 +109,58 @@ def iter_lines_from_external(url):
 
         else:
             logger.warning('Cannot fetch url {0}'.format(url))
+
+
+def iter_synthea_files(path):
+    for filename in os.listdir(path):
+        filepath = os.path.join(os.path.abspath(path), filename)
+        if os.path.isfile(filepath) and filepath.endswith(".json"):
+            yield filepath
+
+
+def make_resource_ref(entrymap, url):
+    if not url in entrymap:
+        logger.warning("No URL {} resource mapping found".format(url))
+        return url
+    resource = entrymap[url]["resource"]
+    fhirbase_ref = "{}/{}".format(resource["resourceType"], resource["id"])
+    return fhirbase_ref
+
+
+def make_fhirbase_ref(entrymap, url):
+    return '"reference":"{}"'.format(make_resource_ref(entrymap, url))
+
+
+def make_resource_entrymap(resources):
+    entrymap = {}
+    for entry in resources:
+        fullurl, resource = entry.get("fullUrl"), entry.get("resource")
+        if not fullurl or not resource:
+            continue
+        if "resourceType" in resource and "id" in resource:
+            entrymap[fullurl] = entry
+    return entrymap
+
+
+def iter_flatten_synthea_resources(filename):
+    with open(filename, "r") as bundle:
+        resources = json.load(bundle).get("entry")
+    if not resources:
+        logger.warning("Skipping bundle {} with no resources".format(filename))
+        return
+    entrymap = make_resource_entrymap(resources)
+    ref_regexp = re.compile(r'"reference":\s*?"(urn:uuid:.*?)"')
+    for entry in resources:
+        resource = entry.get("resource")
+        if resource:
+            yield re.sub(ref_regexp,
+                    lambda ref: make_fhirbase_ref(entrymap, ref.group(1)),
+                    json.dumps(resource, separators=(',', ':')))
+
+
+def iter_lines_from_synthea(path):
+    if not os.path.isdir(path):
+        raise NotADirectoryError("Synthea FHIR folder expected")
+    for filename in iter_synthea_files(path):
+        for resource in iter_flatten_synthea_resources(filename):
+            yield resource
