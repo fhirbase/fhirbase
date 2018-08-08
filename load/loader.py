@@ -1,7 +1,9 @@
 import json
 import logging
 import os
+import random
 import re
+import time
 import zipfile
 import io
 
@@ -94,7 +96,7 @@ def iter_lines_from_external(url):
         if resp.status_code == 200:
             if isndjson(url):
                 for line in resp.iter_lines():
-                    yield line
+                    yield line.decode()
             elif isjson(url):
                 for line in prepare_json(resp.content):
                     yield line
@@ -164,3 +166,76 @@ def iter_lines_from_synthea(path):
     for filename in iter_synthea_files(path):
         for resource in iter_flatten_synthea_resources(filename):
             yield resource
+
+
+def request_content_location(url):
+    headers = {"Accept": "application/fhir+json",
+               "Prefer": "respond-async"}
+    resp = requests.get(url, headers=headers)
+    if resp.status_code != requests.codes.accepted:
+        return None
+    return resp.headers.get("Content-Location")
+
+
+def make_exp_backoff_seq(slot, ceiling):
+    """
+    Truncated Binary Exponential Backoff
+    Generates a sequence of values in range 1 to (2^n - 1) multiplied by slot
+    where n is in range 1 to ceiling (n increases with every yield).
+    """
+    random.seed()
+    generation = 1
+    while True:
+        yield slot * random.randint(1, 2 ** generation - 1)
+        if generation < ceiling:
+            generation += 1
+
+
+def poll_export_links_ready(url):
+    resp = requests.get(url, headers={"Accept": "application/json"})
+    progress = [requests.codes.accepted, requests.codes.too_many_requests]
+    exp_backoff_timeout = make_exp_backoff_seq(10, 3)
+    while resp.status_code in progress:
+        retry_after = resp.headers.get("Retry-After")
+        if retry_after and retry_after.isdigit():
+            time.sleep(int(retry_after))
+        else:
+            time.sleep(next(exp_backoff_timeout))
+        resp = requests.get(url, headers={"Accept": "application/json"})
+    return resp
+
+
+def decode_json_body(response):
+    try:
+        return response.json()
+    except ValueError:
+        return None
+
+
+def get_export_links(url):
+    resp = poll_export_links_ready(url)
+    if resp.status_code != requests.codes.ok:
+        return None
+    if resp.headers.get("Content-Type") != "application/json":
+        return None
+    export_meta = decode_json_body(resp)
+    if not export_meta:
+        return None
+    exported_resources = export_meta.get("output")
+    if not exported_resources:
+        return None
+    return [res["url"] for res in exported_resources if "url" in res]
+
+
+def iter_lines_from_bulk(url):
+    content_location = request_content_location(url)
+    if not content_location:
+        logger.warning("Unable to get content location for {}".format(url))
+        return
+    links = get_export_links(content_location)
+    if not links:
+        logger.warning("Unable to get links to exported resources")
+        return
+    for link in links:
+        for line in iter_lines_from_external(link):
+            yield line
