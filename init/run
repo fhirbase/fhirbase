@@ -8,6 +8,7 @@ echo "Init fhirbase-$version.sql"
 
 if [ -f ${initscript} ]; then
   cat  $initscript | psql
+  cat init/functions.sql | psql
   echo '\dt' | psql
 else
   echo "Do not know this version: ${version}, pick one of:"
