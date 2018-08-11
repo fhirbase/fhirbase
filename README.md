@@ -1,5 +1,7 @@
 # fhirbase:3.0
 
+[![Build Status](https://travis-ci.org/fhirbase/fhirbase-core.svg?branch=master)](https://travis-ci.org/fhirbase/fhirbase-core)
+
 * [Documentation](https://fhirbase.gitbook.io/project/)
 * [Demo](http://fhirbase.github.io/)
 * [Chat](https://chat.fhir.org/#narrow/stream/16-fhirbase)
