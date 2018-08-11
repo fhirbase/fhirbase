@@ -64,6 +64,6 @@ RETURNS jsonb AS $FUNCTION$
    SELECT fhirbase_create(resource, nextval('transaction_id_seq'));
 $FUNCTION$ LANGUAGE sql;
 
-SELECT fhirbase_create('{"resourceType": "Patient", "id": "nicola"}'::jsonb);
+-- SELECT fhirbase_create('{"resourceType": "Patient", "id": "nicola"}'::jsonb);
 -- SELECT fhirbase_create('{"resourceType": "Patient", "id": "ivan", "name": [{"family": "Ivanov"}]}'::jsonb);
-SELECT fhirbase_create('{"resourceType": "Patient", "name": [{"family": "Ivanov"}]}'::jsonb);
+-- SELECT fhirbase_create('{"resourceType": "Patient", "name": [{"family": "Ivanov"}]}'::jsonb);
