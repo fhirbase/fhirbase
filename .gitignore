@@ -4,3 +4,4 @@ __pycache__
 *.pyc
 *.pyo
 .DS_Store
+tests/node_modules
