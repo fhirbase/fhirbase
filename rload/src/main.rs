@@ -4,22 +4,63 @@
 
 extern crate postgres;
 extern crate postgres_binary_copy;
-extern crate curl;
+// extern crate curl;
 extern crate flate2;
 extern crate json;
+extern crate streaming_iterator;
 
 use postgres::{Connection, TlsMode};
 use std::env;
-use curl::http;
+// use curl::http;
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, BufReader};
-use std::path::Path;
+use std::io::{self, BufReader, Cursor, Read};
+// use std::path::Path;
 use flate2::read::GzDecoder;
-use flate2::read::MultiGzDecoder;
-use postgres::types::{Type, ToSql};
-use postgres_binary_copy::BinaryCopyReader;
+// use flate2::read::MultiGzDecoder;
+// use postgres_binary_copy::BinaryCopyReader;
+// use streaming_iterator::StreamingIterator;
+
+struct IteratorAsRead<I>
+where
+    I: Iterator,
+{
+    iter: I,
+    cursor: Option<Cursor<I::Item>>,
+}
+
+impl<I> IteratorAsRead<I>
+where
+    I: Iterator,
+{
+    pub fn new<T>(iter: T) -> Self
+    where
+        T: IntoIterator<IntoIter = I, Item = I::Item>,
+    {
+        let mut iter = iter.into_iter();
+        let cursor = iter.next().map(Cursor::new);
+        IteratorAsRead { iter, cursor }
+    }
+}
+
+impl<I> Read for IteratorAsRead<I>
+where
+    I: Iterator,
+Cursor<I::Item>: Read,
+{
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        while self.cursor.is_some() {
+            let read = self.cursor.as_mut().unwrap().read(buf)?;
+            if read > 0 {
+                return Ok(read);
+            }
+            self.cursor = self.iter.next().map(Cursor::new);
+        }
+        Ok(0)
+    }
+}
+
 
 fn var(key: &str) -> String {
     match env::var(key) {
@@ -34,6 +75,7 @@ fn conn_str() -> String {
 
 
 fn test() {
+
 
     // let url = "https://aidbox.app/User?_format=yaml&__secret=jobanarot";
     // let resp = http::handle()
@@ -54,7 +96,7 @@ fn test() {
 
     // println!("{}",body);
 
-    // let conn = Connection::connect(conn_str(), TlsMode::None).unwrap();
+    let conn = Connection::connect(conn_str(), TlsMode::None).unwrap();
     // let res = &conn.query("select 'hi'", &[]).unwrap();
     // let row = res.get(0);
     // let json: String = row.get(0);
@@ -65,17 +107,24 @@ fn test() {
     let reader = BufReader::new(f);
     let gzip = GzDecoder::new(reader);
     let greader = BufReader::new(gzip);
-    let mut stream = greader.lines();
+    let stream = greader.lines();
 
 
-    let types = &[postgres::types::Type::Varchar];
-    // let res:String = stream.next().unwrap().ok().unwrap();
-    // for res in stream {
-    //     let jsonstr =  res.ok().unwrap();
-    //     let res = json::parse(&jsonstr).unwrap();
-    //     println!("RES: {} / {}", res["resourceType"], res["id"]);
+    // use std::fmt;
 
-    // }
+
+    let source = stream.map(
+        |res| {
+            let jsonstr =  res.ok().unwrap();
+            let res = json::parse(&jsonstr).unwrap();
+            let pres = format!("{},Patient,0,created,{}\n", res["id"], json::stringify(res.dump()));
+            pres
+        }
+    );
+
+    let mut source = IteratorAsRead::new(source);
+    let stmt = conn.prepare("COPY Patient (id, resource_type, txid, status, resource)  FROM STDIN WITH DELIMITER ',' CSV ESCAPE E'\\\\'").unwrap();
+    stmt.copy_in(&[], &mut source).unwrap();
 
 }
 
