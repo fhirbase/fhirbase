@@ -76,42 +76,12 @@ fn conn_str() -> String {
 
 fn test() {
 
-
-    // let url = "https://aidbox.app/User?_format=yaml&__secret=jobanarot";
-    // let resp = http::handle()
-    //     .get(url)
-    //     .exec()
-    //     .unwrap_or_else(|e| {
-    //         panic!("Failed to get {}; error is {}", url, e);
-    //     });
-
-    // if resp.get_code() != 200 {
-    //     println!("Unable to handle HTTP response code {}", resp.get_code());
-    //     return;
-    // }
-
-    // let body = std::str::from_utf8(resp.get_body()).unwrap_or_else(|e| {
-    //     panic!("Failed to parse response from {}; error is {}", url, e);
-    // });
-
-    // println!("{}",body);
-
     let conn = Connection::connect(conn_str(), TlsMode::None).unwrap();
-    // let res = &conn.query("select 'hi'", &[]).unwrap();
-    // let row = res.get(0);
-    // let json: String = row.get(0);
-
-    // println!("RES: {}", json);
-
     let f = File::open("tmp/out.gzip").unwrap();
     let reader = BufReader::new(f);
     let gzip = GzDecoder::new(reader);
     let greader = BufReader::new(gzip);
     let stream = greader.lines();
-
-
-    // use std::fmt;
-
 
     let source = stream.map(
         |res| {
@@ -131,3 +101,30 @@ fn test() {
 fn main() {
     test()
 }
+
+
+// let res = &conn.query("select 'hi'", &[]).unwrap();
+// let row = res.get(0);
+// let json: String = row.get(0);
+
+// println!("RES: {}", json);
+
+
+// let url = "https://aidbox.app/User?_format=yaml&__secret=jobanarot";
+// let resp = http::handle()
+//     .get(url)
+//     .exec()
+//     .unwrap_or_else(|e| {
+//         panic!("Failed to get {}; error is {}", url, e);
+//     });
+
+// if resp.get_code() != 200 {
+//     println!("Unable to handle HTTP response code {}", resp.get_code());
+//     return;
+// }
+
+// let body = std::str::from_utf8(resp.get_body()).unwrap_or_else(|e| {
+//     panic!("Failed to parse response from {}; error is {}", url, e);
+// });
+
+// println!("{}",body);
