@@ -1,4 +1,4 @@
-# fhirbase:3.0
+# Fhirbase 3.0
 
 [![Build Status](https://travis-ci.org/fhirbase/fhirbase-core.svg?branch=master)](https://travis-ci.org/fhirbase/fhirbase-core)
 
@@ -8,15 +8,16 @@
 * [Google Group](https://groups.google.com/forum/#!forum/fhirbase)
 * [StackOverflow](???)
 
-
 ## Development
 
-```bash
-source .env
+This project is Makefile-based. At first, you need to install Golang
+and [Glide](https://github.com/Masterminds/glide). Then building entire project is as simple as:
 
-docker-compose up -d
-docker ps
+    $ make
 
-psql 
+Other possible build targets are:
 
-```
+    $ make fmt     # runs go fmt
+    $ make lint    # runs golint
+    $ make vendor  # runs Glide to install dependencies
+    $ make clean   # cleanups everything
