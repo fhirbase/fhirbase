@@ -1,0 +1,16 @@
+hash: fbb73eba41b02dc99f2e81d402323a381bed37aba00cd1112ea9b09a1747e5ed
+updated: 2018-08-23T19:31:45.268390955+03:00
+imports:
+- name: github.com/json-iterator/go
+  version: 1624edc4454b8682399def8740d46db5e4362ba4
+- name: github.com/lib/pq
+  version: 4ded0e9383f75c197b3a2aaa6d590ac52df6fd79
+  subpackages:
+  - oid
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
+- name: github.com/urfave/cli
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
+testImports: []

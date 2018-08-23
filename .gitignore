@@ -1,7 +1,5 @@
-.data
-*/.idea
-__pycache__
-*.pyc
-*.pyo
 .DS_Store
 tests/node_modules
+.gopath
+vendor
+bin
