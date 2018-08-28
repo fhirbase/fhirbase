@@ -1,19 +1,25 @@
 language: go
 go:
-  - "1.10.x"
-
+  - 1.10.x
 sudo: required
 services:
   - docker
+env:
+  - secure: sbEdTzfE33h7QBmIRPiCQSM4nP31J8OT6iaTcbKWyQTQRi8YyzO7v8J8vGfWUBDWzjPsI/DTfFGmcMH/Pqc07YxhcXngaF/Q539D8NQS/wV1t5ze9d60fKi5ElEWPgiOkdjU4OPcTtruuBnHJKtrTH+G+joKNRwEYkzfwkKE9qEyo0K5V6LLvk8EOOk/t/8iIgj2QqR4nTyiqxK3M8iBS3IdniRv4iFF7WcBLqqwjUWtOhy4QyUMN9/YxH0rjmrUb9DoyuVjmNh1jsn6ndEbDHqPiOv3YxtPhCsszxF5Sj6j7aWb/PQrdJpiOpxU67S1wCvGb6yFmiB64oOHn/nabaOnqz2OxfWzosr4/eZ65tDOHALyrfk1D8bw9VV/xC3vBAAjDCBbJUHk6BRr68Y475vyvHj2PgDtFPE/R4onXH7rrt/OEYoB7LooA9jLUAQ9oZSkWqeGQ8akrba1gVsTI4qbckl585Fvzhr1vGww9vGjgiPJG5ZfXtSdASAwBOdoKo+uMhpzHfFrQpX3VBGJnG1Cu0+Ulfkvx3PS8iiyD4Axy2jxP0hkMZh3rJppRpMpXzNhO60wrfvRRr1n2uuXZE4SSF5CVDH91oUrQn8WcwxXUNh5HITYHVey74WjS4AUgN+RmpxAvSzpwQXVC+qqUFNcrqL2WM7300vLjzZ8jNo=
+  - "PATH=/home/travis/gopath/bin:$PATH"
 
 script:
-  - docker run -d --rm -p "36363:5432" -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=fhirbase postgres:10.4
+  - docker run -d --rm -p "36363:5432" -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres
+    -e POSTGRES_DB=fhirbase postgres:10.4
   - bash -c 'while ! nc -z localhost 36363 ; do sleep 1 ; done'
-  - GOOS=linux GOARCH=amd64 BINSUFFIX=linix-amd64 make
-  - GOOS=windows GOARCH=amd64 BINSUFFIX=win-amd64 make
-  - GOOS=darwin GOARCH=amd64 BINSUFFIX=mac-amd64 make
-
   - PGUSER=postgres PGPASSWORD=postgres PGDATABASE=fhirbase PGPORT=36363 make test
+  - GOOS=linux GOARCH=amd64 BINSUFFIX=linix-amd64 make
+  - GOOS=windows GOARCH=amd64 BINSUFFIX=win-amd64.exe make
+  - GOOS=darwin GOARCH=amd64 BINSUFFIX=mac-amd64 make
 
 before_install:
   - curl https://glide.sh/get | sh
+  - go get github.com/tcnksm/ghr
+
+after_success:
+  - ghr --username mlapshin --token $GITHUB_TOKEN --replace --prerelease --debug pre-release bin/
