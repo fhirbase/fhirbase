@@ -15,7 +15,7 @@ Q = $(if $(filter 1,$V),,@)
 M = $(shell printf "\033[34;1m▶\033[0m")
 
 .PHONY: all
-all: lint fmt vendor $(GOPATH)/bin/packr packr | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
+all: lint fmt vendor packr | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
 	$Q cd $(BASE) && $(GO) build \
 	-v \
 	-tags release \
@@ -42,7 +42,7 @@ $(GOPATH)/bin/packr:
 # Tools
 
 .PHONY: packr
-packr: ; $(info $(M) running packr…)
+packr: $(GOPATH)/bin/packr ; $(info $(M) running packr…)
 	$(GOPATH)/bin/packr -z
 
 .PHONY: lint
@@ -60,3 +60,7 @@ fmt: ; $(info $(M) running gofmt…) @ ## Run gofmt on all source files
 .PHONY: clean
 clean:
 	rm -rf bin .gopath vendor *-packr.go
+
+.PHONY: tests
+test: fmt lint vendor packr
+	cd $(BASE) && go test
