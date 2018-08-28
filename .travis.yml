@@ -1,3 +1,7 @@
+language: go
+go:
+  - "1.10.x"
+
 sudo: required
 services:
   - docker
@@ -9,4 +13,4 @@ script:
   - PGUSER=postgres PGPASSWORD=postgres PGDATABASE=fhirbase PGPORT=36363 make test
 
 before_install:
-  - echo "before install"
+  - curl https://glide.sh/get | sh
