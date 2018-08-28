@@ -22,6 +22,7 @@ var AvailableSchemas = []string{
 // PerformInit actually performs init operation
 func PerformInit(db *pgx.Conn, fhirVersion string) error {
 	var schemaStatements []string
+	var functionStatements []string
 
 	box := packr.NewBox("./data")
 	schema, err := box.MustBytes(fmt.Sprintf("schema/fhirbase-%s.sql.json", fhirVersion))
@@ -30,13 +31,25 @@ func PerformInit(db *pgx.Conn, fhirVersion string) error {
 		log.Fatalf("Cannot find FHIR schema '%s'", fhirVersion)
 	}
 
+	functions, err := box.MustBytes("schema/functions.sql.json")
+
+	if err != nil {
+		log.Fatalf("Cannot find fhirbase function definitions: %v", err)
+	}
+
 	err = jsoniter.Unmarshal(schema, &schemaStatements)
 
 	if err != nil {
 		log.Fatalf("Cannot parse FHIR schema '%s': %v", fhirVersion, err)
 	}
 
-	for _, stmt := range schemaStatements {
+	err = jsoniter.Unmarshal(functions, &functionStatements)
+
+	if err != nil {
+		log.Fatalf("Cannot parse function definitions: %v", err)
+	}
+
+	for _, stmt := range append(schemaStatements, functionStatements...) {
 		_, err = db.Exec(stmt)
 
 		if err != nil {

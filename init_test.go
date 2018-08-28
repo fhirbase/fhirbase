@@ -40,8 +40,17 @@ func TestInitAllSchemas(t *testing.T) {
 	pgDb := GetConnection(&pgDbCfg)
 
 	for _, version := range AvailableSchemas {
-		pgDb.Exec(fmt.Sprintf("DROP DATABASE %s;", DbConfig.Database))
-		pgDb.Exec(fmt.Sprintf("CREATE DATABASE %s;", DbConfig.Database))
+		_, err := pgDb.Exec(fmt.Sprintf("DROP DATABASE %s;", DbConfig.Database))
+
+		if err != nil {
+			t.Fatalf("Cannot drop database: %v", err)
+		}
+
+		_, err = pgDb.Exec(fmt.Sprintf("CREATE DATABASE %s;", DbConfig.Database))
+
+		if err != nil {
+			t.Fatalf("Cannot create database: %v", err)
+		}
 
 		db := GetConnection(&DbConfig)
 		PerformInit(db, version)

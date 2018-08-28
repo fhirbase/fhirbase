@@ -20,7 +20,7 @@ all: lint fmt vendor packr | $(BASE) ; $(info $(M) building executable…) @ ## 
 	-v \
 	-tags release \
 	-ldflags '-X $(PACKAGE)/cmd.Version=$(VERSION) -X $(PACKAGE)/cmd.BuildDate=$(DATE)' \
-	-o bin/$(PACKAGE) *.go
+	-o bin/$(PACKAGE)$(BINSUFFIX) *.go
 
 $(BASE):
 	@mkdir -p $(dir $@)
