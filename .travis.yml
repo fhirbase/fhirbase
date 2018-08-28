@@ -3,8 +3,8 @@ services:
   - docker
 
 script:
-  - docker run --rm -p "36363:5432" -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=fhirbase postgres:10.4
-  - sleep 3
+  - docker run -d --rm -p "36363:5432" -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=fhirbase postgres:10.4
+  - bash -c 'while ! nc -z localhost 36363 ; do sleep 1 ; done'
   - make
   - PGUSER=postgres PGPASSWORD=postgres PGDATABASE=fhirbase PGPORT=36363 make test
 
