@@ -15,12 +15,12 @@ Q = $(if $(filter 1,$V),,@)
 M = $(shell printf "\033[34;1m▶\033[0m")
 
 .PHONY: all
-all: lint fmt vendor | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
+all: lint fmt vendor $(GOPATH)/bin/packr packr | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
 	$Q cd $(BASE) && $(GO) build \
 	-v \
 	-tags release \
 	-ldflags '-X $(PACKAGE)/cmd.Version=$(VERSION) -X $(PACKAGE)/cmd.BuildDate=$(DATE)' \
-	-o bin/$(PACKAGE) main.go
+	-o bin/$(PACKAGE) *.go
 
 $(BASE):
 	@mkdir -p $(dir $@)
@@ -35,7 +35,15 @@ vendor: glide.lock | $(BASE)
 	@ln -sf . vendor/src
 	@touch $@
 
+# install packr with go get because glide doesn't build binaries for us
+$(GOPATH)/bin/packr:
+	$(GO) get -u github.com/gobuffalo/packr/...
+
 # Tools
+
+.PHONY: packr
+packr: ; $(info $(M) running packr…)
+	$(GOPATH)/bin/packr -z
 
 .PHONY: lint
 lint: vendor | $(BASE) $(GOLINT) ; $(info $(M) running golint…) @ ## Run golint
@@ -51,4 +59,4 @@ fmt: ; $(info $(M) running gofmt…) @ ## Run gofmt on all source files
 
 .PHONY: clean
 clean:
-	rm -rf fhirbase .gopath vendor
+	rm -rf bin .gopath vendor *-packr.go

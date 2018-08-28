@@ -1,6 +1,19 @@
-hash: fbb73eba41b02dc99f2e81d402323a381bed37aba00cd1112ea9b09a1747e5ed
-updated: 2018-08-23T19:31:45.268390955+03:00
+hash: e8235f0e5c7830125b3e005eab69983f9d5da53e230cae90822eb745da073846
+updated: 2018-08-27T19:52:31.463532278+03:00
 imports:
+- name: github.com/gobuffalo/packr
+  version: ee1318b82b25993be2f7161d48315e1f14697528
+  subpackages:
+  - '...'
+- name: github.com/jackc/pgx
+  version: 89f1e6ac7276b61d885db5e5aed6fcbedd1c7e31
+  subpackages:
+  - chunkreader
+  - internal/sanitize
+  - pgio
+  - pgproto3
+  - pgtype
+  - stdlib
 - name: github.com/json-iterator/go
   version: 1624edc4454b8682399def8740d46db5e4362ba4
 - name: github.com/lib/pq
@@ -11,6 +24,10 @@ imports:
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
   version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/rakyll/statik
+  version: aa8a7b1baecd0f31a436bf7956fcdcc609a83035
 - name: github.com/urfave/cli
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 testImports: []
