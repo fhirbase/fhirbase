@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -31,8 +32,19 @@ func TestMain(m *testing.M) {
 	os.Exit(retCode)
 }
 
-func TestFoo(t *testing.T) {
-	db := GetConnection(&DbConfig)
+func TestInitAllSchemas(t *testing.T) {
+	pgDbCfg := DbConfig.Merge(pgx.ConnConfig{
+		Database: "postgres",
+	})
 
-	PerformInit(db, "3.3.0")
+	pgDb := GetConnection(&pgDbCfg)
+
+	for _, version := range AvailableSchemas {
+		pgDb.Exec(fmt.Sprintf("DROP DATABASE %s;", DbConfig.Database))
+		pgDb.Exec(fmt.Sprintf("CREATE DATABASE %s;", DbConfig.Database))
+
+		db := GetConnection(&DbConfig)
+		PerformInit(db, version)
+		db.Close()
+	}
 }

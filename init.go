@@ -12,6 +12,13 @@ import (
 	"os"
 )
 
+// AvailableSchemas contains all know FHIR versions
+var AvailableSchemas = []string{
+	"1.0.2", "1.1.0", "1.4.0",
+	"1.6.0", "1.8.0", "3.0.1",
+	"3.2.0", "3.3.0", "dev",
+}
+
 // PerformInit actually performs init operation
 func PerformInit(db *pgx.Conn, fhirVersion string) error {
 	var schemaStatements []string
@@ -47,7 +54,7 @@ func InitCommand(c *cli.Context) error {
 	if c.NArg() > 0 {
 		fhirVersion = c.Args().Get(0)
 	} else {
-		log.Printf("You must provide a FHIR version for `fhirbase init` command.")
+		log.Printf("You must provide a FHIR version for `fhirbase init` command.\nKnow FHIR versions are: %v", AvailableSchemas)
 		os.Exit(1)
 	}
 
