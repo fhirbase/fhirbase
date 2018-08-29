@@ -24,14 +24,14 @@ func PerformInit(db *pgx.Conn, fhirVersion string) error {
 	var schemaStatements []string
 	var functionStatements []string
 
-	box := packr.NewBox("./data")
-	schema, err := box.MustBytes(fmt.Sprintf("schema/fhirbase-%s.sql.json", fhirVersion))
+	box := packr.NewBox("./schema")
+	schema, err := box.MustBytes(fmt.Sprintf("fhirbase-%s.sql.json", fhirVersion))
 
 	if err != nil {
 		log.Fatalf("Cannot find FHIR schema '%s'", fhirVersion)
 	}
 
-	functions, err := box.MustBytes("schema/functions.sql.json")
+	functions, err := box.MustBytes("functions.sql.json")
 
 	if err != nil {
 		log.Fatalf("Cannot find fhirbase function definitions: %v", err)

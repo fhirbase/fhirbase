@@ -63,4 +63,4 @@ clean:
 
 .PHONY: tests
 test: fmt lint vendor packr
-	cd $(BASE) && go test
+	cd $(BASE) && go test $(ARGS)

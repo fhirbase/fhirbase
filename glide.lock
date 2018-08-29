@@ -1,10 +1,14 @@
-hash: e8235f0e5c7830125b3e005eab69983f9d5da53e230cae90822eb745da073846
-updated: 2018-08-27T19:52:31.463532278+03:00
+hash: 8647f0049d163cf517a9f732a9fd4132733ee4378e2140f008b9489554691cf7
+updated: 2018-08-29T17:57:04.286344541+03:00
 imports:
 - name: github.com/gobuffalo/packr
   version: ee1318b82b25993be2f7161d48315e1f14697528
   subpackages:
   - '...'
+- name: github.com/google/go-cmp
+  version: 3af367b6b30c263d47e8895973edcca9a49cf029
+  subpackages:
+  - cmp
 - name: github.com/jackc/pgx
   version: 89f1e6ac7276b61d885db5e5aed6fcbedd1c7e31
   subpackages:
@@ -16,6 +20,11 @@ imports:
   - stdlib
 - name: github.com/json-iterator/go
   version: 1624edc4454b8682399def8740d46db5e4362ba4
+- name: github.com/kylelemons/godebug
+  version: d65d576e9348f5982d7f6d83682b694e731a45c6
+  subpackages:
+  - diff
+  - pretty
 - name: github.com/lib/pq
   version: 4ded0e9383f75c197b3a2aaa6d590ac52df6fd79
   subpackages:

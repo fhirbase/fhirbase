@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"compress/gzip"
 	"database/sql"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/lib/pq"
 	"log"
 	"os"
 	"reflect"
 	"unsafe"
+
+	jsoniter "github.com/json-iterator/go"
+	"github.com/lib/pq"
 )
 
 func BytesToString(b []byte) string {
@@ -72,7 +73,7 @@ func main() {
 
 		// force parsing
 		var res interface{} = iter.Read()
-		// log.Printf(obj["resourceType"].(string))
+		// log.Printf(obj["resourcxeType"].(string))
 
 		stream.WriteVal(res)
 

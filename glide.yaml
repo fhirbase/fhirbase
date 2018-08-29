@@ -14,3 +14,12 @@ import:
   version: v3.2.0
   subpackages:
   - stdlib
+- package: github.com/pkg/errors
+  version: v0.8.0
+- package: github.com/kylelemons/godebug
+  subpackages:
+  - pretty
+- package: github.com/google/go-cmp
+  version: v0.2.0
+  subpackages:
+  - cmp
