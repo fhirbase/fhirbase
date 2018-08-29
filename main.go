@@ -71,6 +71,14 @@ func main() {
 			Description: "This command creates tables and other stuff to store your FHIR stuff.",
 			Action:      InitCommand,
 		},
+		{
+			Name:        "transform",
+			HelpName:    "transform",
+			Hidden:      false,
+			Usage:       "fhirbase transform <fhir-version> <JSON file>",
+			Description: "This command transforms FHIR resource from specific file to internal FHIRBase representation and outputs result to STDOUT.",
+			Action:      TransformCommand,
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {

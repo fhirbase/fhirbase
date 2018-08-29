@@ -52,16 +52,18 @@ var cases = [][]string{
   "resourceType":"Patient",
   "name": [{"given": ["Mike"], "family": "Lapshin"}],
   "deceasedBoolean": true,
+  "multipleBirthInteger": 2,
   "managingOrganization": { "reference": "Organization/1", "display": "ACME corp"}
 }`, `{
   "managingOrganization":{"reference":{"id":"1","type":"Organization","display":"ACME corp"}},
   "resourceType":"Patient",
   "deceased": { "boolean": true },
+  "multipleBirth": { "integer": 2 },
   "name":[{"family":"Lapshin","given":["Mike"]}],
 }`,
 	}, []string{
-		`{"resourceType":"Patient", "managingOrganization": { "reference": "Organization/1", "display": "ACME corp"}}`,
-		`{"resourceType":"Patient", "managingOrganization":{"reference":{"id":"1","type":"Organization","display":"ACME corp"}}}`,
+		`{"resourceType":"Patient", "managingOrganization": { "display": "ACME corp"}}`,
+		`{"resourceType":"Patient", "managingOrganization":{"reference":{"display":"ACME corp"}}}`,
 	},
 }
 

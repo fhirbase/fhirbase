@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/gobuffalo/packr"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
+	"github.com/urfave/cli"
 )
 
 func getByPath(tr map[string]interface{}, path []interface{}) map[string]interface{} {
@@ -27,7 +30,7 @@ func getByPath(tr map[string]interface{}, path []interface{}) map[string]interfa
 }
 
 func transform(node interface{}, trNode map[string]interface{}, tr map[string]interface{}) (interface{}, error) {
-	log.Printf("=> %v %v", node, trNode)
+	// log.Printf("=> %v %v", node, trNode)
 
 	_, isSlice := node.([]interface{})
 
@@ -52,10 +55,13 @@ func transform(node interface{}, trNode map[string]interface{}, tr map[string]in
 			v := node.(map[string]interface{})
 
 			transformed := make(map[string]interface{})
-			refcomps := strings.Split(v["reference"].(string), "/")
 			newref := make(map[string]interface{})
-			newref["id"] = refcomps[len(refcomps)-1]
-			newref["type"] = refcomps[len(refcomps)-2]
+
+			if v["reference"] != nil {
+				refcomps := strings.Split(v["reference"].(string), "/")
+				newref["id"] = refcomps[len(refcomps)-1]
+				newref["type"] = refcomps[len(refcomps)-2]
+			}
 
 			if v["display"] != nil {
 				newref["display"] = v["display"].(string)
@@ -170,4 +176,46 @@ func doTransform(res map[string]interface{}, fhirVersion string) (map[string]int
 	}
 
 	return outMap, nil
+}
+
+// TransformCommand transforms FHIR resource to internal JSON representation
+func TransformCommand(c *cli.Context) error {
+	if c.NArg() < 2 {
+		cli.ShowCommandHelp(c, "transform")
+		fmt.Printf("You must provide a FHIR version for `fhirbase transform` command.\nKnow FHIR versions are: %v", AvailableSchemas)
+		os.Exit(1)
+	}
+
+	fhirVersion := c.Args().Get(0)
+	filename := c.Args().Get(1)
+
+	fileContent, err := ioutil.ReadFile(filename)
+
+	if err != nil {
+		fmt.Printf("Error reading file %s: %v", filename, err)
+		os.Exit(1)
+	}
+
+	iter := jsoniter.ConfigFastest.BorrowIterator(fileContent)
+	defer jsoniter.ConfigFastest.ReturnIterator(iter)
+
+	res := iter.Read()
+
+	if res == nil {
+		fmt.Printf("Error parsing file %s", filename)
+		os.Exit(1)
+	}
+
+	out, err := doTransform(res.(map[string]interface{}), fhirVersion)
+
+	if err != nil {
+		fmt.Printf("Error performing transformation: %v", err)
+		os.Exit(1)
+	}
+
+	outJson, err := jsoniter.ConfigFastest.MarshalIndent(out, "", "  ")
+
+	fmt.Printf("%s\n", outJson)
+
+	return nil
 }
