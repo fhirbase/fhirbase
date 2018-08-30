@@ -4,38 +4,43 @@ BASE     = $(GOPATH)/src/$(PACKAGE)
 DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
 	cat $(CURDIR)/.version 2> /dev/null || echo v0)
+GO15VENDOREXPERIMENT=1
 
 GO      = go
 GODOC   = godoc
 GOFMT   = gofmt
-GLIDE   = glide
+DEP     = dep
 
 V = 0
 Q = $(if $(filter 1,$V),,@)
 M = $(shell printf "\033[34;1m▶\033[0m")
 
 .PHONY: all
-all: lint fmt vendor packr | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
+all: vendor a_main-packr.go lint fmt | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
 	$Q cd $(BASE) && $(GO) build \
 	-v \
 	-tags release \
 	-ldflags '-X $(PACKAGE)/cmd.Version=$(VERSION) -X $(PACKAGE)/cmd.BuildDate=$(DATE)' \
 	-o bin/$(PACKAGE)$(BINSUFFIX) *.go
 
+a_main-packr.go: $(GOPATH)/bin/packr
+	$(GOPATH)/bin/packr -z
+
 $(BASE):
 	@mkdir -p $(dir $@)
 	@ln -sf $(CURDIR) $@
 
-glide.lock: glide.yaml | $(BASE)
-	cd $(BASE) && $(GLIDE) update
+vendor: | $(BASE)
+	@cd $(BASE) && $(DEP) ensure
+	@for dep in `cd $(BASE)/vendor && find * -type d -maxdepth 3 -mindepth 2`; do \
+	echo "building $$dep"; \
+	go install -v $(PACKAGE)/vendor/$$dep; \
+	done
+	@mkdir -p $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
+	@cp -r $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`/$(PACKAGE)/vendor/* $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
 	@touch $@
 
-vendor: glide.lock | $(BASE)
-	cd $(BASE) && $(GLIDE) --quiet install
-	@ln -sf . vendor/src
-	@touch $@
-
-# install packr with go get because glide doesn't build binaries for us
+# # install packr with go get because dep doesn't build binaries for us
 $(GOPATH)/bin/packr:
 	$(GO) get -u github.com/gobuffalo/packr/...
 
