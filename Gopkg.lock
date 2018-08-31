@@ -46,17 +46,6 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:556a9cb6032822d383af66cb5ecab0998fdaa3e13f896afcf542d55b8fdc3318"
-  name = "github.com/lib/pq"
-  packages = [
-    ".",
-    "oid",
-  ]
-  pruneopts = "U"
-  revision = "4ded0e9383f75c197b3a2aaa6d590ac52df6fd79"
-  version = "v1.0.0"
-
-[[projects]]
   digest = "1:0c0ff2a89c1bb0d01887e1dac043ad7efbf3ec77482ef058ac423d13497e16fd"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
@@ -96,7 +85,6 @@
     "github.com/google/go-cmp/cmp",
     "github.com/jackc/pgx",
     "github.com/json-iterator/go",
-    "github.com/lib/pq",
     "github.com/pkg/errors",
     "github.com/urfave/cli",
   ]

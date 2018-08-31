@@ -1,4 +1,4 @@
-package fhirbase
+package main
 
 import (
 	"context"
