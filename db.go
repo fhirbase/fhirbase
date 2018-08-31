@@ -1,4 +1,4 @@
-package main
+package fhirbase
 
 import (
 	"context"
@@ -34,9 +34,6 @@ func GetConnection(cfg *pgx.ConnConfig) *pgx.Conn {
 	if cfg != nil {
 		mainConfig = mainConfig.Merge(*cfg)
 	}
-
-	// envConfig, _ := pgx.ParseEnvLibpq()
-	// mainConfig.Merge(envConfig)
 
 	connStr := fmt.Sprintf("dbname=%s sslmode=disable user=%s password=%s host=%s port=%d",
 		mainConfig.Database, mainConfig.User, mainConfig.Password, mainConfig.Host, mainConfig.Port)
