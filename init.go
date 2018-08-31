@@ -6,18 +6,11 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/jackc/pgx"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
 	"log"
-	"os"
 )
-
-// AvailableSchemas contains all know FHIR versions
-var AvailableSchemas = []string{
-	"1.0.2", "1.1.0", "1.4.0",
-	"1.6.0", "1.8.0", "3.0.1",
-	"3.2.0", "3.3.0", "dev",
-}
 
 // PerformInit actually performs init operation
 func PerformInit(db *pgx.Conn, fhirVersion string) error {
@@ -28,32 +21,32 @@ func PerformInit(db *pgx.Conn, fhirVersion string) error {
 	schema, err := box.MustBytes(fmt.Sprintf("fhirbase-%s.sql.json", fhirVersion))
 
 	if err != nil {
-		log.Fatalf("Cannot find FHIR schema '%s'", fhirVersion)
+		return errors.Wrapf(err, "Cannot find FHIR schema '%s'", fhirVersion)
 	}
 
 	functions, err := box.MustBytes("functions.sql.json")
 
 	if err != nil {
-		log.Fatalf("Cannot find fhirbase function definitions: %v", err)
+		return errors.Wrap(err, "Cannot find fhirbase function definitions")
 	}
 
 	err = jsoniter.Unmarshal(schema, &schemaStatements)
 
 	if err != nil {
-		log.Fatalf("Cannot parse FHIR schema '%s': %v", fhirVersion, err)
+		return errors.Wrapf(err, "Cannot parse FHIR schema '%s'", fhirVersion)
 	}
 
 	err = jsoniter.Unmarshal(functions, &functionStatements)
 
 	if err != nil {
-		log.Fatalf("Cannot parse function definitions: %v", err)
+		return errors.Wrap(err, "Cannot parse function definitions")
 	}
 
 	for _, stmt := range append(schemaStatements, functionStatements...) {
 		_, err = db.Exec(stmt)
 
 		if err != nil {
-			log.Printf("PG error: %v\nWhile executing statement:\n%s\n", err, stmt)
+			return errors.Wrapf(err, "PG error while executing statement:\n%s\n", stmt)
 		}
 	}
 
@@ -62,17 +55,14 @@ func PerformInit(db *pgx.Conn, fhirVersion string) error {
 
 // InitCommand loads FHIR schema into database
 func InitCommand(c *cli.Context) error {
-	var fhirVersion string
-
-	if c.NArg() > 0 {
-		fhirVersion = c.Args().Get(0)
-	} else {
-		log.Printf("You must provide a FHIR version for `fhirbase init` command.\nKnow FHIR versions are: %v", AvailableSchemas)
-		os.Exit(1)
-	}
+	fhirVersion := c.GlobalString("fhir")
 
 	db := GetConnection(nil)
-	PerformInit(db, fhirVersion)
+	err := PerformInit(db, fhirVersion)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to perform init command")
+	}
 
 	log.Printf("Database initialized with FHIR schema version '%s'", fhirVersion)
 

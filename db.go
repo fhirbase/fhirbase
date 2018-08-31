@@ -28,6 +28,7 @@ func GetConnection(cfg *pgx.ConnConfig) *pgx.Conn {
 		Port:      uint16(PgConfig.Port),
 		User:      PgConfig.Username,
 		Password:  PgConfig.Password,
+		Database:  PgConfig.Database,
 	}
 
 	if cfg != nil {

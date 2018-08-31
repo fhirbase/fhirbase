@@ -4,9 +4,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli"
 )
+
+// AvailableSchemas contains all know FHIR versions
+var AvailableSchemas = []string{
+	"1.0.2", "1.1.0", "1.4.0",
+	"1.6.0", "1.8.0", "3.0.1",
+	"3.2.0", "3.3.0", "dev",
+}
 
 const logo = ` (        )  (    (                   (
  )\ )  ( /(  )\ ) )\ )   (     (      )\ )
@@ -47,6 +55,11 @@ func main() {
 			Destination: &PgConfig.Username,
 		},
 		cli.StringFlag{
+			Name:  "fhir, f",
+			Value: "3.3.0",
+			Usage: "FHIR version to use. Know FHIR versions are: " + strings.Join(AvailableSchemas, ", "),
+		},
+		cli.StringFlag{
 			Name:        "db, d",
 			Value:       "",
 			Usage:       "Database to connect to",
@@ -66,7 +79,7 @@ func main() {
 			Name:        "init",
 			HelpName:    "init",
 			Hidden:      false,
-			Usage:       "fhirbase init <fhir-version>",
+			Usage:       "Creates FHIRBase schema in Postgres database",
 			UsageText:   "This command creates tables and other stuff to store your FHIR stuff.",
 			Description: "This command creates tables and other stuff to store your FHIR stuff.",
 			Action:      InitCommand,
@@ -75,7 +88,7 @@ func main() {
 			Name:        "transform",
 			HelpName:    "transform",
 			Hidden:      false,
-			Usage:       "fhirbase transform <fhir-version> <JSON file>",
+			Usage:       "Performs FHIRBase transformation on a single resource from JSON file",
 			Description: "This command transforms FHIR resource from specific file to internal FHIRBase representation and outputs result to STDOUT.",
 			Action:      TransformCommand,
 		},
