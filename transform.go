@@ -180,20 +180,19 @@ func doTransform(res map[string]interface{}, fhirVersion string) (map[string]int
 
 // TransformCommand transforms FHIR resource to internal JSON representation
 func TransformCommand(c *cli.Context) error {
-	if c.NArg() < 2 {
+	if c.NArg() != 1 {
 		cli.ShowCommandHelp(c, "transform")
-		fmt.Printf("You must provide a FHIR version for `fhirbase transform` command.\nKnow FHIR versions are: %v", AvailableSchemas)
-		os.Exit(1)
+
+		return fmt.Errorf("Missing required argument FILE")
 	}
 
-	fhirVersion := c.Args().Get(0)
-	filename := c.Args().Get(1)
+	fhirVersion := c.GlobalString("fhir")
+	filename := c.Args().Get(0)
 
 	fileContent, err := ioutil.ReadFile(filename)
 
 	if err != nil {
-		fmt.Printf("Error reading file %s: %v", filename, err)
-		os.Exit(1)
+		return errors.Wrapf(err, "Error reading file %s", filename)
 	}
 
 	iter := jsoniter.ConfigFastest.BorrowIterator(fileContent)
@@ -202,20 +201,19 @@ func TransformCommand(c *cli.Context) error {
 	res := iter.Read()
 
 	if res == nil {
-		fmt.Printf("Error parsing file %s", filename)
-		os.Exit(1)
+		return errors.Wrapf(err, "Error parsing file %s as JSON", filename)
 	}
 
 	out, err := doTransform(res.(map[string]interface{}), fhirVersion)
 
 	if err != nil {
-		fmt.Printf("Error performing transformation: %v", err)
-		os.Exit(1)
+		return errors.Wrap(err, "Error performing transformation")
 	}
 
 	outJson, err := jsoniter.ConfigFastest.MarshalIndent(out, "", "  ")
 
-	fmt.Printf("%s\n", outJson)
+	os.Stdout.Write(outJson)
+	os.Stdout.Write([]byte("\n"))
 
 	return nil
 }

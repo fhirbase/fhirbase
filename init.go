@@ -61,7 +61,7 @@ func InitCommand(c *cli.Context) error {
 	err := PerformInit(db, fhirVersion)
 
 	if err != nil {
-		return errors.Wrap(err, "failed to perform init command")
+		return errors.Wrap(err, "Failed to perform init command. Perhaps target database is not empty?")
 	}
 
 	log.Printf("Database initialized with FHIR schema version '%s'", fhirVersion)
