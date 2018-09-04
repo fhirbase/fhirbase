@@ -38,8 +38,6 @@ func GetConnection(cfg *pgx.ConnConfig) *pgx.Conn {
 	connStr := fmt.Sprintf("dbname=%s sslmode=disable user=%s password=%s host=%s port=%d",
 		mainConfig.Database, mainConfig.User, mainConfig.Password, mainConfig.Host, mainConfig.Port)
 
-	log.Printf("Connecting to database: %s", connStr)
-
 	conn, err := pgx.Connect(mainConfig)
 
 	if err != nil {
@@ -52,7 +50,7 @@ func GetConnection(cfg *pgx.ConnConfig) *pgx.Conn {
 		log.Fatalf("Error testing database connection: %v", err)
 	}
 
-	log.Printf("Connected to database")
+	fmt.Printf("Connected to database %s\n", connStr)
 
 	return conn
 }

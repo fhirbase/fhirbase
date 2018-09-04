@@ -92,6 +92,21 @@ func main() {
 			Description: "This command transforms FHIR resource from specific file to internal FHIRBase representation and outputs result to STDOUT.",
 			Action:      TransformCommand,
 		},
+		{
+			Name:        "load",
+			HelpName:    "load",
+			Hidden:      false,
+			Usage:       "Loads FHIR data (resources) into database",
+			Description: "This command loads FHIR data from various sources, i.e. local file or Bulk Data API server.",
+			Action:      LoadCommand,
+			Flags: []cli.Flag{
+				cli.UintFlag{
+					Name:  "batchsize, b",
+					Value: 2000,
+					Usage: "Number of INSERTs to seng in one batch query",
+				},
+			},
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {
