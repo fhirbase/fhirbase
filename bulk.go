@@ -7,62 +7,15 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 	"github.com/vbauerster/mpb"
 	"github.com/vbauerster/mpb/decor"
 )
-
-var matchNonDigits, _ = regexp.Compile("[^\\d]")
-
-func waitForBulkData(pingURL string) ([]string, error) {
-	resp, err := http.Get(pingURL)
-
-	for resp.StatusCode != 200 {
-		progress := int64(-1)
-		xprogress := matchNonDigits.ReplaceAllString(resp.Header.Get("X-Progress"), "")
-
-		if len(xprogress) > 0 {
-			progress, err = strconv.ParseInt(xprogress, 10, 64)
-
-			if err != nil {
-				progress = -1
-			}
-		}
-
-		fmt.Printf("bulk prepare progress: %d\n", progress)
-		resp.Body.Close()
-		time.Sleep(1000 * time.Millisecond)
-		resp, err = http.Get(pingURL)
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-
-	iter := jsoniter.ConfigDefault.BorrowIterator(body)
-	defer jsoniter.ConfigDefault.ReturnIterator(iter)
-
-	obj := iter.Read()
-	fileURLs := make([]string, 0)
-
-	if obj != nil {
-		objMap, ok := obj.(map[string]interface{})
-
-		if ok {
-			for _, v := range objMap["output"].([]interface{}) {
-				item, ok := v.(map[string]interface{})
-
-				if ok {
-					fileURLs = append(fileURLs, item["url"].(string))
-				}
-			}
-		}
-	}
-
-	return fileURLs, nil
-}
 
 func UnknownTotalCounter(unit int, pairFormat string, wcc ...decor.WC) decor.Decorator {
 	var wc decor.WC
@@ -107,6 +60,116 @@ func (d *unknownTotalDecorator) Syncable() (bool, chan int) {
 	return d.WC.Syncable()
 }
 
+var matchNonDigits, _ = regexp.Compile("[^\\d]")
+
+func getBulkDataFiles(pingURL string) ([]string, error) {
+	fmt.Println("Waiting for Bulk Data API server to prepare files...")
+
+	resp, err := http.Get(pingURL)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "error while pinging Bulk Data API server")
+	}
+
+	for i := 1; resp.StatusCode != 200; i++ {
+		// progress := int64(-1)
+		// xprogress := matchNonDigits.ReplaceAllString(resp.Header.Get("X-Progress"), "")
+
+		// if len(xprogress) > 0 {
+		// 	progress, err = strconv.ParseInt(xprogress, 10, 64)
+
+		// 	if err != nil {
+		// 		progress = -1
+		// 	}
+		// }
+
+		if resp.StatusCode > 299 || resp.StatusCode < 200 {
+			return nil, fmt.Errorf("got non-200 response wile piging Bulk Data API server")
+		}
+
+		if i%5 == 0 {
+			fmt.Println("still waiting...")
+		}
+
+		resp.Body.Close()
+
+		time.Sleep(1000 * time.Millisecond)
+
+		resp, err = http.Get(pingURL)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "error while pinging Bulk Data API server")
+		}
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "error while reading response")
+	}
+
+	iter := jsoniter.ConfigDefault.BorrowIterator(body)
+	defer jsoniter.ConfigDefault.ReturnIterator(iter)
+
+	obj := iter.Read()
+
+	if obj == nil {
+		return nil, errors.Wrap(iter.Error, "cannot parse server response")
+	}
+
+	fileURLs := make([]string, 0)
+	objMap, ok := obj.(map[string]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("expecting JSON object at the top level")
+	}
+
+	output := objMap["output"]
+
+	if output == nil {
+		return nil, fmt.Errorf("expecting to have 'output' attribute")
+	}
+
+	outputArr, ok := output.([]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("'output' attribute is not an JSON Array")
+	}
+
+	for _, v := range outputArr {
+		item, ok := v.(map[string]interface{})
+
+		if !ok {
+			return nil, fmt.Errorf("got non-object in 'output' array")
+		}
+
+		url := item["url"]
+
+		if url == nil {
+			return nil, fmt.Errorf("cannot get 'url' attribute in item of 'output' array")
+		}
+
+		urlString, ok := url.(string)
+
+		if !ok {
+			return nil, fmt.Errorf("'url' attribute is not a string")
+		}
+
+		fileURLs = append(fileURLs, urlString)
+	}
+
+	return fileURLs, nil
+}
+
+func stripURL(url string, length int) string {
+	if len(url) < length {
+		return strings.Repeat(" ", length-len(url)) + url
+	}
+
+	return "..." + url[len(url)-length-3:len(url)]
+}
+
 func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan string, wg *sync.WaitGroup) {
 	wg.Add(1)
 
@@ -126,8 +189,7 @@ func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan str
 				counterDecorator = UnknownTotalCounter(decor.UnitKiB, "%6.1f / ???", decor.WCSyncWidth)
 			}
 
-			name := "..." + url[len(url)-20:len(url)]
-
+			name := stripURL(url, 25)
 			bar := bars.AddBar(size, mpb.BarPriority(n),
 				mpb.BarRemoveOnComplete(),
 				mpb.PrependDecorators(
@@ -186,22 +248,26 @@ func getBulkData(url string) error {
 	}
 
 	defer resp.Body.Close()
-	// body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "cannot perform HTTP query")
 	}
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 220 {
-		pingUrl := resp.Header.Get("Content-Location")
-		fileURLs, _ := waitForBulkData(pingUrl)
+		pingURL := resp.Header.Get("Content-Location")
 
-		fmt.Printf("HERE!\n")
+		if len(pingURL) == 0 {
+			return fmt.Errorf("No Content-Location header was returned by Bulk Data API server")
+		}
+
+		fileURLs, err := getBulkDataFiles(pingURL)
+
+		if err != nil {
+			return errors.Wrap(err, "Cannot get list of files to download")
+		}
 
 		downloadFiles(fileURLs, 5)
 	}
-
-	// fmt.Printf("%v\n%s\n", resp, body)
 
 	return nil
 }
