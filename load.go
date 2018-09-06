@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"compress/gzip"
 
@@ -17,10 +18,9 @@ import (
 	"github.com/jackc/pgx/pgtype"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/urfave/cli"
-	pb "gopkg.in/cheggaaa/pb.v2"
+	"github.com/vbauerster/mpb"
+	"github.com/vbauerster/mpb/decor"
 )
-
-const BatchSize = 2000
 
 type bundle interface {
 	Next() (map[string]interface{}, error)
@@ -29,11 +29,12 @@ type bundle interface {
 }
 
 type multilineBundle struct {
-	count   int
-	file    *os.File
-	gzr     *gzip.Reader
-	reader  *bufio.Reader
-	curline int
+	count    int
+	fileName string
+	file     *os.File
+	gzr      *gzip.Reader
+	reader   *bufio.Reader
+	curline  int
 }
 
 func (b *multilineBundle) Close() {
@@ -71,6 +72,7 @@ func (b *multilineBundle) Next() (map[string]interface{}, error) {
 
 func newMultilineBundle(fileName string) (*multilineBundle, error) {
 	var result multilineBundle
+	result.fileName = fileName
 
 	file, err := os.Open(fileName)
 
@@ -108,6 +110,77 @@ func newMultilineBundle(fileName string) (*multilineBundle, error) {
 	return &result, nil
 }
 
+type multifileBundle struct {
+	count          int
+	fileNames      []string
+	currentBndlIdx int
+	currentBndl    bundle
+}
+
+func newMultifileBundle(fileNames []string) (*multifileBundle, error) {
+	var result multifileBundle
+	result.fileNames = fileNames
+	result.count = 0
+	result.currentBndlIdx = -1
+
+	for _, fileName := range result.fileNames {
+		bndl, err := newMultilineBundle(fileName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		result.count = result.count + bndl.Count()
+		bndl.Close()
+	}
+
+	return &result, nil
+}
+
+func (b *multifileBundle) Count() int {
+	return b.count
+}
+
+func (b *multifileBundle) Close() {
+	if b.currentBndl != nil {
+		b.currentBndl.Close()
+		b.currentBndl = nil
+		b.currentBndlIdx = -1
+	}
+}
+
+func (b *multifileBundle) Next() (map[string]interface{}, error) {
+	if b.currentBndl == nil {
+		b.currentBndlIdx = b.currentBndlIdx + 1
+
+		if b.currentBndlIdx > len(b.fileNames)-1 {
+			return nil, io.EOF
+		}
+
+		currentBndl, err := newMultilineBundle(b.fileNames[b.currentBndlIdx])
+
+		if err != nil {
+			b.currentBndlIdx = b.currentBndlIdx + 1
+			return nil, err
+		}
+
+		b.currentBndl = currentBndl
+	}
+
+	res, err := b.currentBndl.Next()
+
+	if err != nil {
+		if err == io.EOF {
+			b.currentBndl.Close()
+			b.currentBndl = nil
+			return b.Next()
+		}
+		return nil, err
+	}
+
+	return res, nil
+}
+
 // PrintMemUsage outputs the current, total and OS memory being used. As well as the number
 // of garage collection cycles completed.
 func PrintMemUsage() {
@@ -143,7 +216,7 @@ func countLinesInReader(r io.Reader) (int, error) {
 	}
 }
 
-func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur uint, curType string, total uint)) error {
+func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur uint, curType string, total uint, duration time.Duration)) error {
 	tx, _ := db.Begin()
 	batch := tx.BeginBatch()
 	curResource := uint(0)
@@ -151,6 +224,7 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur 
 	var err error
 
 	for err == nil {
+		startTime := time.Now()
 		var resource map[string]interface{}
 		resource, err = bndl.Next()
 
@@ -172,7 +246,7 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur 
 			}
 
 			curResource++
-			progressCb(curResource, resourceType, totalCount)
+			progressCb(curResource, resourceType, totalCount, time.Since(startTime))
 		} else {
 			tx.Rollback()
 			return err
@@ -186,12 +260,16 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur 
 
 // LoadCommand loads FHIR schema into database
 func LoadCommand(c *cli.Context) error {
+	if c.NArg() > 0 && strings.HasPrefix(c.Args().Get(0), "http") {
+		return getBulkData(c.Args().Get(0))
+	}
+
 	db := GetConnection(nil)
 	defer db.Close()
 
 	batchSize := c.Uint("batchsize")
 
-	bndl, err := newMultilineBundle(c.Args()[0])
+	bndl, err := newMultifileBundle(c.Args())
 	defer bndl.Close()
 
 	if err != nil {
@@ -199,15 +277,28 @@ func LoadCommand(c *cli.Context) error {
 	}
 
 	insertedCounts := make(map[string]uint)
-	bar := pb.Full.Start(bndl.Count())
-	bar.SetWidth(100)
+	bars := mpb.New(
+		mpb.WithWidth(100),
+	)
 
-	err = performLoad(db, bndl, batchSize, func(cur uint, curType string, total uint) {
+	bar := bars.AddBar(int64(bndl.Count()),
+		mpb.AppendDecorators(
+			decor.Percentage(decor.WC{W: 3}),
+			decor.AverageETA(decor.ET_STYLE_MMSS, decor.WC{W: 6}),
+		),
+		mpb.PrependDecorators(decor.CountersNoUnit("%d / %d", decor.WC{W: 10})))
+
+	err = performLoad(db, bndl, batchSize, func(cur uint, curType string, total uint, duration time.Duration) {
 		insertedCounts[curType] = insertedCounts[curType] + 1
-		bar.Increment()
+		bar.IncrBy(1, duration)
 	})
 
-	bar.Finish()
+	bars.Wait()
+
+	if err != nil && err != io.EOF {
+		return err
+	}
+
 	fmt.Printf("Done, inserted %d resources:\n", bndl.Count())
 
 	tblw := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)

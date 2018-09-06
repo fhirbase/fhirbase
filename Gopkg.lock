@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:a1dbd512184b7bf5f59d76d1ff0132e22fdffbbc79e800355307bf4600bed200"
+  name = "github.com/VividCortex/ewma"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "b24eb346a94c3ba12c1da1e564dbac1b498a77ce"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:f2fbbf8d6fd34fdce515cc7484e7580c13cfae2df20b17bd131469782136f019"
   name = "github.com/gobuffalo/packr"
   packages = ["."]
@@ -46,14 +54,6 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:8edc6deaf0507aa108ca0d527c0b482fef56d91507e2ebd1a24f8de902d82965"
-  name = "github.com/mattn/go-colorable"
-  packages = ["."]
-  pruneopts = "U"
-  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
-  version = "v0.0.9"
-
-[[projects]]
   digest = "1:3140e04675a6a91d2a20ea9d10bdadf6072085502e6def6768361260aee4b967"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
@@ -94,63 +94,36 @@
   version = "v1.20.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:fb871d8afcad5f52500dd2e4d16b535661d37c1e1884ee3f56387cb96e3bbb2b"
-  name = "golang.org/x/sys"
-  packages = ["unix"]
-  pruneopts = "U"
-  revision = "fa5fdf94c78965f1aa8423f0cc50b8b8d728b05a"
-
-[[projects]]
-  digest = "1:a1dbd512184b7bf5f59d76d1ff0132e22fdffbbc79e800355307bf4600bed200"
-  name = "gopkg.in/VividCortex/ewma.v1"
-  packages = ["."]
-  pruneopts = "U"
-  revision = "b24eb346a94c3ba12c1da1e564dbac1b498a77ce"
-  version = "v1.1.1"
-
-[[projects]]
-  digest = "1:6432b24484a7f3ca3d72bb0d384531c22763f8547a479b7a4c5906e65010eb26"
-  name = "gopkg.in/cheggaaa/pb.v2"
+  digest = "1:d07540782ba788f5371bbeb290d969b7477df839b7640f7f8cebe21aedc99523"
+  name = "github.com/vbauerster/mpb"
   packages = [
     ".",
-    "termutil",
+    "cwriter",
+    "decor",
+    "internal",
   ]
   pruneopts = "U"
-  revision = "c112833d014c77e8bde723fd0158e3156951639f"
-  version = "v2.0.6"
+  revision = "b89b6c9ce4c35decc74d18628a5def8299d6c41f"
+  version = "v3.3.2"
 
 [[projects]]
-  digest = "1:e988ed0ca0d81f4d28772760c02ee95084961311291bdfefc1b04617c178b722"
-  name = "gopkg.in/fatih/color.v1"
-  packages = ["."]
+  branch = "master"
+  digest = "1:ed359abd610d03004c519d6269e99c31d33bb218ba4f889985d30a5ada76d4df"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
   pruneopts = "U"
-  revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
-  version = "v1.7.0"
+  revision = "0709b304e793a5edb4a2c0145f281ecdc20838a4"
 
 [[projects]]
-  digest = "1:8edc6deaf0507aa108ca0d527c0b482fef56d91507e2ebd1a24f8de902d82965"
-  name = "gopkg.in/mattn/go-colorable.v0"
-  packages = ["."]
+  branch = "master"
+  digest = "1:a82fc3205554c66e745aefab081509a4c862a1889af76c1dff0fcbb63b6b35c9"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "U"
-  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
-  version = "v0.0.9"
-
-[[projects]]
-  digest = "1:3140e04675a6a91d2a20ea9d10bdadf6072085502e6def6768361260aee4b967"
-  name = "gopkg.in/mattn/go-isatty.v0"
-  packages = ["."]
-  pruneopts = "U"
-  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
-  version = "v0.0.4"
-
-[[projects]]
-  digest = "1:82b912465c1da0668582a7d1117339c278e786c2536b3c3623029a0c7141c2d0"
-  name = "gopkg.in/mattn/go-runewidth.v0"
-  packages = ["."]
-  pruneopts = "U"
-  revision = "ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb"
-  version = "v0.0.3"
+  revision = "ebe1bf3edb3325c393447059974de898d5133eb8"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -163,7 +136,8 @@
     "github.com/json-iterator/go",
     "github.com/pkg/errors",
     "github.com/urfave/cli",
-    "gopkg.in/cheggaaa/pb.v2",
+    "github.com/vbauerster/mpb",
+    "github.com/vbauerster/mpb/decor",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
