@@ -1,19 +1,18 @@
-export PACKAGE  = fhirbase
+PACKAGE  = fhirbase
 export GOPATH   = $(CURDIR)/.gopath
-export BASE     = $(GOPATH)/src/$(PACKAGE)
-export DATE    ?= $(shell date +%FT%T%z)
-export VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
+BASE     = $(GOPATH)/src/$(PACKAGE)
+DATE    ?= $(shell date +%FT%T%z)
+VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
 	cat $(CURDIR)/.version 2> /dev/null || echo v0)
-export GO15VENDOREXPERIMENT=1
 
-export GO      = go
-export GODOC   = godoc
-export GOFMT   = gofmt
-export DEP     = dep
+GO      = go
+GODOC   = godoc
+GOFMT   = gofmt
+DEP     = dep
 
-export V = 0
-export Q = $(if $(filter 1,$V),,@)
-export M = $(shell printf "\033[34;1m▶\033[0m")
+V = 0
+Q = $(if $(filter 1,$V),,@)
+M = $(shell printf "\033[34;1m▶\033[0m")
 
 .PHONY: all
 all: vendor a_main-packr.go lint fmt | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
@@ -34,7 +33,7 @@ vendor: | $(BASE)
 	cd $(BASE) && $(DEP) ensure
 	for dep in `cd $(BASE)/vendor && find * -type d -maxdepth 3 -mindepth 2`; do \
 	echo "building $$dep"; \
-	go install -v $(PACKAGE)/vendor/$$dep || echo "not good"; \
+	go install -v $(PACKAGE)/vendor/$$dep > /dev/null 2>&1 || echo "not good" > /dev/null; \
 	done
 	mkdir -p $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
 	cp -r $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`/$(PACKAGE)/vendor/* $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
