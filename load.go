@@ -258,18 +258,11 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur 
 	return nil
 }
 
-// LoadCommand loads FHIR schema into database
-func LoadCommand(c *cli.Context) error {
-	if c.NArg() > 0 && strings.HasPrefix(c.Args().Get(0), "http") {
-		return getBulkData(c.Args().Get(0))
-	}
-
+func loadFiles(files []string, batchSize uint) error {
 	db := GetConnection(nil)
 	defer db.Close()
 
-	batchSize := c.Uint("batchsize")
-
-	bndl, err := newMultifileBundle(c.Args())
+	bndl, err := newMultifileBundle(files)
 	defer bndl.Close()
 
 	if err != nil {
@@ -310,4 +303,37 @@ func LoadCommand(c *cli.Context) error {
 	tblw.Flush()
 
 	return nil
+}
+
+// LoadCommand loads FHIR schema into database
+func LoadCommand(c *cli.Context) error {
+	if c.NArg() == 0 {
+		cli.ShowCommandHelpAndExit(c, "load", 1)
+		return nil
+	}
+
+	if strings.HasPrefix(c.Args().Get(0), "http") {
+		fileHndlrs, err := getBulkData(c.Args().Get(0))
+
+		if err != nil {
+			return err
+		}
+
+		files := make([]string, 0, len(fileHndlrs))
+
+		defer func() {
+			for _, fn := range files {
+				os.Remove(fn)
+			}
+		}()
+
+		for _, f := range fileHndlrs {
+			files = append(files, f.Name())
+			f.Close()
+		}
+
+		return loadFiles(files, c.Uint("batchsize"))
+	}
+
+	return loadFiles(c.Args(), c.Uint("batchsize"))
 }

@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -84,7 +85,13 @@ func getBulkDataFiles(pingURL string) ([]string, error) {
 		// }
 
 		if resp.StatusCode > 299 || resp.StatusCode < 200 {
-			return nil, fmt.Errorf("got non-200 response wile piging Bulk Data API server")
+			respBody, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				return nil, fmt.Errorf("got %d response wile piging Bulk Data API server; cannot read response body", resp.StatusCode)
+			}
+
+			return nil, fmt.Errorf("got %d response wile piging Bulk Data API server. Response Body:\n%s", resp.StatusCode, respBody)
 		}
 
 		if i%5 == 0 {
@@ -170,18 +177,34 @@ func stripURL(url string, length int) string {
 	return "..." + url[len(url)-length-3:len(url)]
 }
 
-func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan string, wg *sync.WaitGroup) {
+func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan interface{}, wg *sync.WaitGroup) {
 	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
 
 		for url := range jobs {
-			targetFile, _ := ioutil.TempFile("", "")
-			resp, _ := http.Get(url)
+			targetFile, err := ioutil.TempFile("", "")
+
+			if err != nil {
+				results <- errors.Wrap(err, "cannot create temp file")
+				continue
+			}
+
+			resp, err := http.Get(url)
+
+			if err != nil {
+				results <- errors.Wrap(err, "cannot perform HTTP request")
+				continue
+			}
+
+			if resp.StatusCode != 200 {
+				results <- fmt.Errorf("got non-200 response while downloading %s", url)
+			}
 
 			contentLengthHeader := resp.Header.Get("Content-Length")
 			size, err := strconv.ParseInt(contentLengthHeader, 10, 64)
+
 			counterDecorator := decor.CountersKibiByte("%6.1f / %6.1f", decor.WCSyncWidth)
 
 			if err != nil {
@@ -204,20 +227,27 @@ func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan str
 
 			reader := bar.ProxyReader(resp.Body)
 
-			totalWritten, _ := io.Copy(targetFile, reader)
+			totalWritten, err := io.Copy(targetFile, reader)
+
+			if err != nil {
+				results <- errors.Wrap(err, "cannot copy HTTP response body to temporary file")
+			}
 
 			bar.SetTotal(totalWritten, true)
 
-			results <- targetFile.Name()
+			results <- targetFile
 		}
 	}()
 }
 
-func downloadFiles(fileURLs []string, numWorkers int) error {
+func downloadFiles(fileURLs []string, numWorkers int) ([]*os.File, error) {
 	doneWg := new(sync.WaitGroup)
 	bars := mpb.New(mpb.WithWidth(64), mpb.WithWaitGroup(doneWg))
 	jobs := make(chan string, len(fileURLs))
-	results := make(chan string, len(fileURLs))
+	results := make(chan interface{}, len(fileURLs))
+	files := make([]*os.File, 0)
+
+	fmt.Printf("Start downloading %d files in %d threads\n", len(fileURLs), numWorkers)
 
 	for _, url := range fileURLs {
 		jobs <- url
@@ -231,12 +261,30 @@ func downloadFiles(fileURLs []string, numWorkers int) error {
 
 	bars.Wait()
 
-	fmt.Printf("%v", results)
+	close(results)
 
-	return nil
+	for res := range results {
+		err, ok := res.(error)
+
+		if ok {
+			fmt.Printf("Got an error while downloading file: %s", err.Error())
+		} else {
+			f, ok := res.(*os.File)
+
+			if ok {
+				files = append(files, f)
+			} else {
+				fmt.Printf("got result of unknown type: %v", res)
+			}
+		}
+	}
+
+	fmt.Printf("Finished downloading, got %d files\n", len(files))
+
+	return files, nil
 }
 
-func getBulkData(url string) error {
+func getBulkData(url string) ([]*os.File, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Prefer", "respond-async")
@@ -244,30 +292,30 @@ func getBulkData(url string) error {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	if err != nil {
-		return errors.Wrap(err, "cannot perform HTTP query")
+		return nil, errors.Wrap(err, "cannot perform HTTP query")
 	}
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 220 {
-		pingURL := resp.Header.Get("Content-Location")
-
-		if len(pingURL) == 0 {
-			return fmt.Errorf("No Content-Location header was returned by Bulk Data API server")
-		}
-
-		fileURLs, err := getBulkDataFiles(pingURL)
-
-		if err != nil {
-			return errors.Wrap(err, "Cannot get list of files to download")
-		}
-
-		downloadFiles(fileURLs, 5)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, fmt.Errorf("expected 200 response, got %d", resp.StatusCode)
 	}
 
-	return nil
+	pingURL := resp.Header.Get("Content-Location")
+
+	if len(pingURL) == 0 {
+		return nil, fmt.Errorf("No Content-Location header was returned by Bulk Data API server")
+	}
+
+	fileURLs, err := getBulkDataFiles(pingURL)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "Cannot get list of files to download")
+	}
+
+	return downloadFiles(fileURLs, 5)
 }
