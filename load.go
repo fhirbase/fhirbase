@@ -216,7 +216,7 @@ func countLinesInReader(r io.Reader) (int, error) {
 	}
 }
 
-func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur uint, curType string, total uint, duration time.Duration)) error {
+func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, progressCb func(cur uint, curType string, total uint, duration time.Duration)) error {
 	tx, _ := db.Begin()
 	batch := tx.BeginBatch()
 	curResource := uint(0)
@@ -229,9 +229,16 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur 
 		resource, err = bndl.Next()
 
 		if err == nil {
-			resourceType, _ := resource["resourceType"].(string)
+			transformedResource, err := doTransform(resource, fhirVersion)
 
-			batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES (gen_random_uuid(), 0, 'created', $1)", strings.ToLower(resourceType)), []interface{}{resource}, []pgtype.OID{pgtype.JSONBOID}, nil)
+			if err != nil {
+				fmt.Printf("Error during FB transform: %v\n", err)
+			}
+
+			resourceType, _ := resource["resourceType"].(string)
+			id, _ := resource["id"].(string)
+
+			batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2)", strings.ToLower(resourceType)), []interface{}{id, transformedResource}, []pgtype.OID{pgtype.TextOID, pgtype.JSONBOID}, nil)
 
 			if curResource%batchSize == 0 || curResource == totalCount-1 {
 				// PrintMemUsage()
@@ -258,18 +265,13 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, progressCb func(cur 
 	return nil
 }
 
-// LoadCommand loads FHIR schema into database
-func LoadCommand(c *cli.Context) error {
-	if c.NArg() > 0 && strings.HasPrefix(c.Args().Get(0), "http") {
-		return getBulkData(c.Args().Get(0))
-	}
-
+func loadFiles(files []string, batchSize uint, fhirVersion string) error {
 	db := GetConnection(nil)
 	defer db.Close()
 
-	batchSize := c.Uint("batchsize")
+	startTime := time.Now()
 
-	bndl, err := newMultifileBundle(c.Args())
+	bndl, err := newMultifileBundle(files)
 	defer bndl.Close()
 
 	if err != nil {
@@ -288,7 +290,7 @@ func LoadCommand(c *cli.Context) error {
 		),
 		mpb.PrependDecorators(decor.CountersNoUnit("%d / %d", decor.WC{W: 10})))
 
-	err = performLoad(db, bndl, batchSize, func(cur uint, curType string, total uint, duration time.Duration) {
+	err = performLoad(db, bndl, batchSize, fhirVersion, func(cur uint, curType string, total uint, duration time.Duration) {
 		insertedCounts[curType] = insertedCounts[curType] + 1
 		bar.IncrBy(1, duration)
 	})
@@ -299,7 +301,9 @@ func LoadCommand(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Done, inserted %d resources:\n", bndl.Count())
+	loadDuration := time.Since(startTime) / time.Second
+
+	fmt.Printf("Done, inserted %d resources in %d seconds:\n", bndl.Count(), loadDuration)
 
 	tblw := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 
@@ -310,4 +314,40 @@ func LoadCommand(c *cli.Context) error {
 	tblw.Flush()
 
 	return nil
+}
+
+// LoadCommand loads FHIR schema into database
+func LoadCommand(c *cli.Context) error {
+	if c.NArg() == 0 {
+		cli.ShowCommandHelpAndExit(c, "load", 1)
+		return nil
+	}
+
+	fhirVersion := c.GlobalString("fhir")
+
+	if strings.HasPrefix(c.Args().Get(0), "http") {
+		numWorkers := c.Uint("paralleldl")
+		fileHndlrs, err := getBulkData(c.Args().Get(0), numWorkers)
+
+		if err != nil {
+			return err
+		}
+
+		files := make([]string, 0, len(fileHndlrs))
+
+		defer func() {
+			for _, fn := range files {
+				os.Remove(fn)
+			}
+		}()
+
+		for _, f := range fileHndlrs {
+			files = append(files, f.Name())
+			f.Close()
+		}
+
+		return loadFiles(files, c.Uint("batchsize"), fhirVersion)
+	}
+
+	return loadFiles(c.Args(), c.Uint("batchsize"), fhirVersion)
 }
