@@ -1,19 +1,19 @@
-PACKAGE  = fhirbase
-GOPATH   = $(CURDIR)/.gopath
-BASE     = $(GOPATH)/src/$(PACKAGE)
-DATE    ?= $(shell date +%FT%T%z)
-VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
+export PACKAGE  = fhirbase
+export GOPATH   = $(CURDIR)/.gopath
+export BASE     = $(GOPATH)/src/$(PACKAGE)
+export DATE    ?= $(shell date +%FT%T%z)
+export VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
 	cat $(CURDIR)/.version 2> /dev/null || echo v0)
-GO15VENDOREXPERIMENT=1
+export GO15VENDOREXPERIMENT=1
 
-GO      = go
-GODOC   = godoc
-GOFMT   = gofmt
-DEP     = dep
+export GO      = go
+export GODOC   = godoc
+export GOFMT   = gofmt
+export DEP     = dep
 
-V = 0
-Q = $(if $(filter 1,$V),,@)
-M = $(shell printf "\033[34;1m▶\033[0m")
+export V = 0
+export Q = $(if $(filter 1,$V),,@)
+export M = $(shell printf "\033[34;1m▶\033[0m")
 
 .PHONY: all
 all: vendor a_main-packr.go lint fmt | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
@@ -31,15 +31,14 @@ $(BASE):
 	@ln -sf $(CURDIR) $@
 
 vendor: | $(BASE)
-	env
-	@cd $(BASE) && $(DEP) ensure
-	@for dep in `cd $(BASE)/vendor && find * -type d -maxdepth 3 -mindepth 2`; do \
+	cd $(BASE) && $(DEP) ensure
+	for dep in `cd $(BASE)/vendor && find * -type d -maxdepth 3 -mindepth 2`; do \
 	echo "building $$dep"; \
-	go install -v $(PACKAGE)/vendor/$$dep; \
+	go install -v $(PACKAGE)/vendor/$$dep || echo "not good"; \
 	done
-	@mkdir -p $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
-	@cp -r $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`/$(PACKAGE)/vendor/* $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
-	@touch $@
+	mkdir -p $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
+	cp -r $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`/$(PACKAGE)/vendor/* $(GOPATH)/pkg/`go env GOOS`_`go env GOARCH`
+	touch $@
 
 # # install packr with go get because dep doesn't build binaries for us
 $(GOPATH)/bin/packr:
