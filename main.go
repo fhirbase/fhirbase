@@ -93,6 +93,23 @@ func main() {
 			Action:      TransformCommand,
 		},
 		{
+			Name:        "bulkget",
+			HelpName:    "bulkget",
+			Hidden:      false,
+			ArgsUsage:   "[BULK DATA ENDPOINT] [TARGET DIR]",
+			Usage:       "Downloads FHIR data from Bulk Data API endpoint",
+			Description: "Downloads FHIR data from Bulk Data API endpoint.",
+			Action:      BulkGetCommand,
+			Flags: []cli.Flag{
+				cli.UintFlag{
+					Name:  "numdl",
+					Value: 5,
+					Usage: "Number of parallel downloads for Bulk Data API client",
+				},
+			},
+		},
+
+		{
 			Name:        "load",
 			HelpName:    "load",
 			Hidden:      false,
@@ -107,7 +124,7 @@ func main() {
 					Usage: "Number of INSERTs to send in one query",
 				},
 				cli.UintFlag{
-					Name:  "paralleldl",
+					Name:  "numdl",
 					Value: 5,
 					Usage: "Number of parallel downloads for Bulk Data API client",
 				},
