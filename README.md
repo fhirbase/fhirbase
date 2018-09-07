@@ -10,6 +10,28 @@
 
 ## Development
 
+
+For macos:
+
+```
+brew install go
+brew install dep
+
+# use your local postgres or
+cd dev
+source .env
+docker-compose up -d
+cd ..
+
+make
+
+source dev/.env
+bin/fhirbase -d fhirbase init
+curl https://storage.googleapis.com/aidbox-public/sample-data.gzip > /tmp/data.gzip 
+bin/fhirbase -d fhirbase load /tmp/data.gzip
+
+```
+
 This project is Makefile-based. At first, you need to install Golang
 and [Glide](https://github.com/Masterminds/glide). Then building entire project is as simple as:
 
