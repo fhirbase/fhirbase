@@ -326,7 +326,8 @@ func LoadCommand(c *cli.Context) error {
 	fhirVersion := c.GlobalString("fhir")
 
 	if strings.HasPrefix(c.Args().Get(0), "http") {
-		fileHndlrs, err := getBulkData(c.Args().Get(0))
+		numWorkers := c.Uint("paralleldl")
+		fileHndlrs, err := getBulkData(c.Args().Get(0), numWorkers)
 
 		if err != nil {
 			return err

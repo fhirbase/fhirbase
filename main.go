@@ -97,13 +97,19 @@ func main() {
 			HelpName:    "load",
 			Hidden:      false,
 			Usage:       "Loads FHIR data (resources) into database",
+			ArgsUsage:   "[BULK DATA URL OR FILE PATHS]",
 			Description: "This command loads FHIR data from various sources, i.e. local file or Bulk Data API server.",
 			Action:      LoadCommand,
 			Flags: []cli.Flag{
 				cli.UintFlag{
 					Name:  "batchsize, b",
 					Value: 2000,
-					Usage: "Number of INSERTs to seng in one batch query",
+					Usage: "Number of INSERTs to send in one query",
+				},
+				cli.UintFlag{
+					Name:  "paralleldl",
+					Value: 5,
+					Usage: "Number of parallel downloads for Bulk Data API client",
 				},
 			},
 		},

@@ -177,7 +177,7 @@ func stripURL(url string, length int) string {
 	return "..." + url[len(url)-length-3:len(url)]
 }
 
-func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan interface{}, wg *sync.WaitGroup) {
+func startDlWorker(n uint, bars *mpb.Progress, jobs chan string, results chan interface{}, wg *sync.WaitGroup) {
 	wg.Add(1)
 
 	go func() {
@@ -213,7 +213,7 @@ func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan int
 			}
 
 			name := stripURL(url, 25)
-			bar := bars.AddBar(size, mpb.BarPriority(n),
+			bar := bars.AddBar(size, mpb.BarPriority(int(n)),
 				mpb.BarRemoveOnComplete(),
 				mpb.PrependDecorators(
 					decor.Name(name, decor.WC{W: len(name) + 1, C: decor.DidentRight}),
@@ -240,7 +240,7 @@ func startDlWorker(n int, bars *mpb.Progress, jobs chan string, results chan int
 	}()
 }
 
-func downloadFiles(fileURLs []string, numWorkers int) ([]*os.File, error) {
+func downloadFiles(fileURLs []string, numWorkers uint) ([]*os.File, error) {
 	doneWg := new(sync.WaitGroup)
 	bars := mpb.New(mpb.WithWidth(64), mpb.WithWaitGroup(doneWg))
 	jobs := make(chan string, len(fileURLs))
@@ -255,7 +255,7 @@ func downloadFiles(fileURLs []string, numWorkers int) ([]*os.File, error) {
 
 	close(jobs)
 
-	for i := 0; i < numWorkers; i++ {
+	for i := uint(0); i < numWorkers; i++ {
 		startDlWorker(i, bars, jobs, results, doneWg)
 	}
 
@@ -284,7 +284,7 @@ func downloadFiles(fileURLs []string, numWorkers int) ([]*os.File, error) {
 	return files, nil
 }
 
-func getBulkData(url string) ([]*os.File, error) {
+func getBulkData(url string, numWorkers uint) ([]*os.File, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Prefer", "respond-async")
@@ -317,5 +317,5 @@ func getBulkData(url string) ([]*os.File, error) {
 		return nil, errors.Wrap(err, "Cannot get list of files to download")
 	}
 
-	return downloadFiles(fileURLs, 5)
+	return downloadFiles(fileURLs, numWorkers)
 }
