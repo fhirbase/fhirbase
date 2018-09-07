@@ -58,9 +58,15 @@ func transform(node interface{}, trNode map[string]interface{}, tr map[string]in
 			newref := make(map[string]interface{})
 
 			if v["reference"] != nil {
-				refcomps := strings.Split(v["reference"].(string), "/")
-				newref["id"] = refcomps[len(refcomps)-1]
-				newref["type"] = refcomps[len(refcomps)-2]
+				refstr, _ := v["reference"].(string)
+				refcomps := strings.Split(refstr, "/")
+
+				if len(refcomps) == 2 {
+					newref["id"] = refcomps[1]
+					newref["type"] = refcomps[0]
+				} else {
+					newref["id"] = refstr
+				}
 			}
 
 			if v["display"] != nil {
