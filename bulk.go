@@ -5,7 +5,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	urlPkg "net/url"
 	"os"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +16,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
+	"github.com/urfave/cli"
 	"github.com/vbauerster/mpb"
 	"github.com/vbauerster/mpb/decor"
 )
@@ -184,7 +187,16 @@ func startDlWorker(n uint, bars *mpb.Progress, jobs chan string, results chan in
 		defer wg.Done()
 
 		for url := range jobs {
-			targetFile, err := ioutil.TempFile("", "")
+			parsedURL, err := urlPkg.Parse(url)
+
+			fileName := path.Base(parsedURL.EscapedPath())
+
+			if err != nil {
+				results <- errors.Wrap(err, "cannot parse URL")
+				continue
+			}
+
+			targetFile, err := ioutil.TempFile("", fileName)
 
 			if err != nil {
 				results <- errors.Wrap(err, "cannot create temp file")
@@ -318,4 +330,36 @@ func getBulkData(url string, numWorkers uint) ([]*os.File, error) {
 	}
 
 	return downloadFiles(fileURLs, numWorkers)
+}
+
+// BulkGetCommand loads data from Bulk Data Endpoint and saves it to local filesystem
+func BulkGetCommand(c *cli.Context) error {
+	if c.NArg() < 2 {
+		cli.ShowCommandHelpAndExit(c, "bulkget", 1)
+		return nil
+	}
+
+	numWorkers := c.Uint("numdl")
+	bulkURL := c.Args().Get(0)
+	destPath := c.Args().Get(1)
+
+	fileHndlrs, err := getBulkData(bulkURL, numWorkers)
+
+	if err != nil {
+		return err
+	}
+
+	for _, f := range fileHndlrs {
+		fn := f.Name()
+		fbn := path.Base(fn)
+
+		err := os.Rename(f.Name(), path.Join(destPath, fbn))
+
+		if err != nil {
+			fmt.Printf("Error moving %s to %s: %v", f.Name(), path.Join(destPath, fbn), err)
+		}
+	}
+
+	return nil
+
 }
