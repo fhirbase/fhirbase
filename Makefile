@@ -16,14 +16,14 @@ Q = $(if $(filter 1,$V),,@)
 M = $(shell printf "\033[34;1m▶\033[0m")
 
 .PHONY: all
-all: vendor a_fhirbase-packr.go lint fmt | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
+all: vendor a_main-packr.go lint fmt | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
 	$Q cd $(BASE) && $(GO) build \
 	-v \
 	-tags release \
 	-ldflags '-X $(PACKAGE)/cmd.Version=$(VERSION) -X $(PACKAGE)/cmd.BuildDate=$(DATE)' \
 	-o bin/$(PACKAGE)$(BINSUFFIX) *.go
 
-a_fhirbase-packr.go: $(GOPATH)/bin/packr
+a_main-packr.go: $(GOPATH)/bin/packr
 	$(GOPATH)/bin/packr -z
 
 $(BASE):
@@ -31,6 +31,7 @@ $(BASE):
 	@ln -sf $(CURDIR) $@
 
 vendor: | $(BASE)
+	env
 	@cd $(BASE) && $(DEP) ensure
 	@for dep in `cd $(BASE)/vendor && find * -type d -maxdepth 3 -mindepth 2`; do \
 	echo "building $$dep"; \
