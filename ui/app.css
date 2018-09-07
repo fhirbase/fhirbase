@@ -1,0 +1,33 @@
+#menu {
+    position: absolute;
+    top: 10px;
+    left: 40px;
+    right: 260px;
+    height: 30px;
+}
+#editor {
+    position: absolute;
+    top: 70px;
+    left: 40px;
+    right: 260px;
+    bottom: 40px;
+}
+#right-bar {
+    position: absolute;
+    top: 70px;
+    width: 200px;
+    right: 40px;
+    bottom: 40px;
+}
+#hint {
+    position: absolute;
+    bottom: 10px;
+    color: #aaa;
+    font-size: 12px;
+    left: 40px;
+}
+body {
+    background: #333;
+    color: #eee;
+}
+.CodeMirror { height: 100%; }
