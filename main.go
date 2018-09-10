@@ -108,7 +108,6 @@ func main() {
 				},
 			},
 		},
-
 		{
 			Name:        "load",
 			HelpName:    "load",
@@ -127,6 +126,27 @@ func main() {
 					Name:  "numdl",
 					Value: 5,
 					Usage: "Number of parallel downloads for Bulk Data API client",
+				},
+			},
+		},
+		{
+			Name:        "web",
+			HelpName:    "web",
+			Hidden:      false,
+			Usage:       "Starts simple web server to invoke SQL queries from browser",
+			ArgsUsage:   "",
+			Description: "Starts simple web server to invoke SQL queries from browser",
+			Action:      WebCommand,
+			Flags: []cli.Flag{
+				cli.UintFlag{
+					Name:  "webport",
+					Value: 3000,
+					Usage: "Port to start webserver on",
+				},
+				cli.StringFlag{
+					Name:  "webhost",
+					Value: "localhost",
+					Usage: "Host to start webserver on",
 				},
 			},
 		},

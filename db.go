@@ -20,8 +20,7 @@ type PgConnectionConfig struct {
 // PgConnectionConfig holds PG credentials passed from command line
 var PgConfig = PgConnectionConfig{}
 
-// GetConnection connects to database
-func GetConnection(cfg *pgx.ConnConfig) *pgx.Conn {
+func GetPgxConnectionConfig(cfg *pgx.ConnConfig) pgx.ConnConfig {
 	mainConfig := pgx.ConnConfig{
 		TLSConfig: nil,
 		Host:      PgConfig.Host,
@@ -34,6 +33,13 @@ func GetConnection(cfg *pgx.ConnConfig) *pgx.Conn {
 	if cfg != nil {
 		mainConfig = mainConfig.Merge(*cfg)
 	}
+
+	return mainConfig
+}
+
+// GetConnection connects to database
+func GetConnection(cfg *pgx.ConnConfig) *pgx.Conn {
+	mainConfig := GetPgxConnectionConfig(cfg)
 
 	connStr := fmt.Sprintf("dbname=%s sslmode=disable user=%s password=%s host=%s port=%d",
 		mainConfig.Database, mainConfig.User, mainConfig.Password, mainConfig.Host, mainConfig.Port)
