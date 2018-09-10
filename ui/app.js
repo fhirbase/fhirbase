@@ -1,27 +1,76 @@
-
 window.onload = function() {
-  var mime = 'text/x-pgsql';
-  // get mime type
-  function runQuery(cm) {
-    console.log(cm.getValue());
-    return false;
+  var mime = "text/x-pgsql";
+
+  const escapeHtml = unsafe => {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   };
-  window.editor = CodeMirror(document.getElementById('editor'), {
+
+  const formatResultField = f => {
+    if (typeof f === "object" && f !== null) {
+      return "<pre>" + escapeHtml(JSON.stringify(f, null, 2)) + "</pre>";
+    } else {
+      return f;
+    }
+  };
+
+  function runQuery(cm) {
+    let q = cm.getValue();
+    let url = new URL("/q", window.location);
+    url.searchParams.append("query", q);
+
+    fetch(url)
+      .then(response => {
+        return response.json();
+      })
+      .then(json => {
+        console.log("Got results", json);
+        let tbl = "<table><thead><tr>";
+
+        json.columns.forEach(clmn => {
+          tbl += "<th>" + clmn.Name + "</th>";
+        });
+
+        tbl += "</tr></thead><tbody>";
+
+        json.rows.forEach(row => {
+          tbl +=
+            "<tr>" +
+            row.map(f => "<td>" + formatResultField(f) + "</td>").join("") +
+            "</tr>";
+        });
+
+        tbl += "</tbody></table>";
+
+        console.log(tbl);
+
+        document.getElementById("results").innerHTML = tbl;
+      });
+    return false;
+  }
+
+  window.editor = CodeMirror(document.getElementById("editor"), {
     mode: mime,
     theme: "zenburn",
     indentWithTabs: true,
     smartIndent: true,
     lineNumbers: true,
-    matchBrackets : true,
+    matchBrackets: true,
+    value: "SELECT * FROM patient LIMIT 100;",
     autofocus: true,
     extraKeys: {
       "Ctrl-Space": "autocomplete",
       "Ctrl-Enter": runQuery
     },
-    hintOptions: {tables: {
-      users: ["name", "score", "birthDate"],
-      countries: ["name", "population", "size"]
-    }}
+    hintOptions: {
+      tables: {
+        users: ["name", "score", "birthDate"],
+        countries: ["name", "population", "size"]
+      }
+    }
   });
 };
-

@@ -1,33 +1,29 @@
+#container {
+  display: flex;
+  flex-direction: row;
+}
+
+#left {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
 #menu {
-    position: absolute;
-    top: 10px;
-    left: 40px;
-    right: 260px;
-    height: 30px;
 }
 #editor {
-    position: absolute;
-    top: 70px;
-    left: 40px;
-    right: 260px;
-    bottom: 40px;
+  height: 300px;
 }
-#right-bar {
-    position: absolute;
-    top: 70px;
-    width: 200px;
-    right: 40px;
-    bottom: 40px;
+#right {
+  width: 20%;
+  flex-grow: 0;
 }
+
 #hint {
-    position: absolute;
-    bottom: 10px;
-    color: #aaa;
-    font-size: 12px;
-    left: 40px;
 }
 body {
     background: #333;
     color: #eee;
+    padding: 2em;
 }
 .CodeMirror { height: 100%; }

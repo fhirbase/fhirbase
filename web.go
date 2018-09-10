@@ -77,16 +77,29 @@ func WebCommand(c *cli.Context) error {
 		stream.WriteObjectStart()
 		stream.WriteObjectField("columns")
 		stream.WriteVal(rows.FieldDescriptions())
+		stream.WriteMore()
 		stream.WriteObjectField("rows")
+		stream.WriteArrayStart()
 
-		for rows.Next() {
+		hasRows := rows.Next()
+
+		for hasRows {
 			vals, err := rows.Values()
 
-			if err != nil {
+			if err == nil {
 				stream.WriteVal(vals)
+			} else {
+				stream.WriteNil()
+			}
+
+			hasRows = rows.Next()
+
+			if hasRows {
+				stream.WriteMore()
 			}
 		}
 
+		stream.WriteArrayEnd()
 		stream.WriteObjectEnd()
 
 		stream.Flush()
