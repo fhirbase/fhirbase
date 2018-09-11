@@ -25,31 +25,48 @@ window.onload = function() {
 
     fetch(url)
       .then(response => {
-        return response.json();
+        return response
+          .json()
+          .then(json => Promise.resolve([response.status, json]));
       })
-      .then(json => {
-        console.log("Got results", json);
-        let tbl =
-          '<h3>Results</h3><table class="table table-striped table-bordered table-sm"><thead><tr>';
+      .then(resp => {
+        const status = resp[0];
+        const json = resp[1];
 
-        json.columns.forEach(clmn => {
-          tbl += "<th>" + clmn.Name + "</th>";
-        });
+        if (status === 200) {
+          console.log("Got results", json);
 
-        tbl += "</tr></thead><tbody>";
+          let tbl =
+            '<h3>Results</h3><table class="table table-striped table-bordered table-sm"><thead><tr>';
 
-        json.rows.forEach(row => {
-          tbl +=
-            "<tr>" +
-            row.map(f => "<td>" + formatResultField(f) + "</td>").join("") +
-            "</tr>";
-        });
+          json.columns.forEach(clmn => {
+            tbl += "<th>" + clmn.Name + "</th>";
+          });
 
-        tbl += "</tbody></table>";
+          tbl += "</tr></thead><tbody>";
 
-        console.log(tbl);
+          json.rows.forEach(row => {
+            tbl +=
+              "<tr>" +
+              row.map(f => "<td>" + formatResultField(f) + "</td>").join("") +
+              "</tr>";
+          });
 
-        document.getElementById("results").innerHTML = tbl;
+          tbl += "</tbody></table>";
+
+          document.getElementById("results").innerHTML = tbl;
+        } else {
+          document.getElementById("results").innerHTML =
+            "<h3>Results</h3><div class='alert alert-danger'>" +
+            json.message +
+            "</div>";
+        }
+      })
+      .catch(err => {
+        document.getElementById("results").innerHTML =
+          "<h3>Results</h3><div class='alert alert-danger'>" +
+          err.message +
+          "</div>";
       });
     return false;
   }
