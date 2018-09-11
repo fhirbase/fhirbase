@@ -69,7 +69,10 @@ var matchNonDigits, _ = regexp.Compile("[^\\d]")
 func getBulkDataFiles(pingURL string) ([]string, error) {
 	fmt.Println("Waiting for Bulk Data API server to prepare files...")
 
-	resp, err := http.Get(pingURL)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", pingURL, nil)
+	req.Header.Add("Accept", "application/json")
+	resp, err := client.Do(req)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "error while pinging Bulk Data API server")
@@ -91,10 +94,10 @@ func getBulkDataFiles(pingURL string) ([]string, error) {
 			respBody, err := ioutil.ReadAll(resp.Body)
 
 			if err != nil {
-				return nil, fmt.Errorf("got %d response wile piging Bulk Data API server; cannot read response body", resp.StatusCode)
+				return nil, fmt.Errorf("got %d response while pinging Bulk Data API server; cannot read response body", resp.StatusCode)
 			}
 
-			return nil, fmt.Errorf("got %d response wile piging Bulk Data API server. Response Body:\n%s", resp.StatusCode, respBody)
+			return nil, fmt.Errorf("got %d response while pinging Bulk Data API server. Response Body:\n%s", resp.StatusCode, respBody)
 		}
 
 		if i%5 == 0 {
@@ -105,7 +108,9 @@ func getBulkDataFiles(pingURL string) ([]string, error) {
 
 		time.Sleep(1000 * time.Millisecond)
 
-		resp, err = http.Get(pingURL)
+		req, err = http.NewRequest("GET", pingURL, nil)
+		req.Header.Add("Accept", "application/json")
+		resp, err = client.Do(req)
 
 		if err != nil {
 			return nil, errors.Wrap(err, "error while pinging Bulk Data API server")
@@ -296,25 +301,22 @@ func downloadFiles(fileURLs []string, numWorkers uint) ([]*os.File, error) {
 	return files, nil
 }
 
-func getBulkData(url string, numWorkers uint) ([]*os.File, error) {
+func getBulkData(url string, numWorkers uint, acceptHdr string) ([]*os.File, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Prefer", "respond-async")
-	req.Header.Add("Accept", "application/fhir+json")
+	req.Header.Add("Accept", acceptHdr)
 	resp, err := client.Do(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
 
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot perform HTTP query")
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return nil, fmt.Errorf("expected 200 response, got %d", resp.StatusCode)
+		respBody, _ := ioutil.ReadAll(resp.Body)
+		return nil, fmt.Errorf("expected 20x response, got %d; response body is: %s", resp.StatusCode, respBody)
 	}
 
 	pingURL := resp.Header.Get("Content-Location")
@@ -340,10 +342,11 @@ func BulkGetCommand(c *cli.Context) error {
 	}
 
 	numWorkers := c.Uint("numdl")
+	acceptHdr := c.String("accept-header")
 	bulkURL := c.Args().Get(0)
 	destPath := c.Args().Get(1)
 
-	fileHndlrs, err := getBulkData(bulkURL, numWorkers)
+	fileHndlrs, err := getBulkData(bulkURL, numWorkers, acceptHdr)
 
 	if err != nil {
 		return err

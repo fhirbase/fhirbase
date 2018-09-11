@@ -106,6 +106,11 @@ func main() {
 					Value: 5,
 					Usage: "Number of parallel downloads for Bulk Data API client",
 				},
+				cli.StringFlag{
+					Name:  "accept-header",
+					Value: "application/fhir+json",
+					Usage: "Value for Accept HTTP header (should be application/ndjson for Cerner, application/fhir+json for Smart)",
+				},
 			},
 		},
 		{
@@ -126,6 +131,11 @@ func main() {
 					Name:  "numdl",
 					Value: 5,
 					Usage: "Number of parallel downloads for Bulk Data API client",
+				},
+				cli.StringFlag{
+					Name:  "accept-header",
+					Value: "application/fhir+json",
+					Usage: "Value for Accept HTTP header (should be application/ndjson for Cerner, application/fhir+json for Smart)",
 				},
 			},
 		},

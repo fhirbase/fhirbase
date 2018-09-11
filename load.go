@@ -327,7 +327,8 @@ func LoadCommand(c *cli.Context) error {
 
 	if strings.HasPrefix(c.Args().Get(0), "http") {
 		numWorkers := c.Uint("numdl")
-		fileHndlrs, err := getBulkData(c.Args().Get(0), numWorkers)
+		acceptHdr := c.String("accept-header")
+		fileHndlrs, err := getBulkData(c.Args().Get(0), numWorkers, acceptHdr)
 
 		if err != nil {
 			return err
