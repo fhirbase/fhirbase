@@ -18,7 +18,7 @@ func WebCommand(c *cli.Context) error {
 	webHost := c.String("webhost")
 	webPort := c.Uint("webport")
 	addr := fmt.Sprintf("%s:%d", webHost, webPort)
-	box := packr.NewBox("./ui")
+	box := packr.NewBox("./web")
 
 	mainConfig := GetPgxConnectionConfig(nil)
 

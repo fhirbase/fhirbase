@@ -29,7 +29,8 @@ window.onload = function() {
       })
       .then(json => {
         console.log("Got results", json);
-        let tbl = "<table><thead><tr>";
+        let tbl =
+          '<h3>Results</h3><table class="table table-striped table-bordered table-sm"><thead><tr>';
 
         json.columns.forEach(clmn => {
           tbl += "<th>" + clmn.Name + "</th>";
@@ -53,9 +54,13 @@ window.onload = function() {
     return false;
   }
 
+  window.submitQuery = () => {
+    runQuery(window.editor);
+  };
+
   window.editor = CodeMirror(document.getElementById("editor"), {
     mode: mime,
-    theme: "zenburn",
+    theme: "duotone-light",
     indentWithTabs: true,
     smartIndent: true,
     lineNumbers: true,

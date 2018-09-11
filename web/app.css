@@ -1,0 +1,53 @@
+#container {
+  display: flex;
+  flex-direction: row;
+}
+
+#left {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  max-width: 80%;
+  margin-right: 2em;
+}
+
+#results table th, #results table td, #results table td pre {
+  font-size: 12px;
+  font-family: monospace;
+}
+
+#results td, #results th {
+  vertical-align: top;
+}
+
+#results {
+  overflow: hidden;
+}
+
+#menu {
+}
+
+#menu h3 {
+}
+
+#editor {
+  height: 300px;
+
+}
+
+#right {
+  width: 20%;
+  flex-grow: 0;
+}
+
+#hint {
+  margin: 1em 0;
+  display: flex;
+  justify-content: flex-end;
+
+}
+
+body {
+  padding: 2em;
+}
+.CodeMirror { height: 100%; }
