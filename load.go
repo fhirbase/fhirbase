@@ -217,8 +217,7 @@ func countLinesInReader(r io.Reader) (int, error) {
 }
 
 func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, progressCb func(cur uint, curType string, total uint, duration time.Duration)) error {
-	tx, _ := db.Begin()
-	batch := tx.BeginBatch()
+	batch := db.BeginBatch()
 	curResource := uint(0)
 	totalCount := uint(bndl.Count())
 	var err error
@@ -236,12 +235,13 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, 
 			}
 
 			resourceType, _ := resource["resourceType"].(string)
+			tblName := strings.ToLower(resourceType)
 			id, ok := resource["id"].(string)
 
 			if !ok || id == "" {
-				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES (gen_random_uuid()::text, 0, 'created', $1)", strings.ToLower(resourceType)), []interface{}{transformedResource}, []pgtype.OID{pgtype.JSONBOID}, nil)
+				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES (gen_random_uuid()::text, 0, 'created', $1) ON CONFLICT (id) DO NOTHING", tblName), []interface{}{transformedResource}, []pgtype.OID{pgtype.JSONBOID}, nil)
 			} else {
-				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2)", strings.ToLower(resourceType)), []interface{}{id, transformedResource}, []pgtype.OID{pgtype.TextOID, pgtype.JSONBOID}, nil)
+				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2) ON CONFLICT (id) DO NOTHING", tblName), []interface{}{id, transformedResource}, []pgtype.OID{pgtype.TextOID, pgtype.JSONBOID}, nil)
 			}
 
 			if curResource%batchSize == 0 || curResource == totalCount-1 {
@@ -259,12 +259,9 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, 
 			curResource++
 			progressCb(curResource, resourceType, totalCount, time.Since(startTime))
 		} else {
-			tx.Rollback()
 			return err
 		}
 	}
-
-	tx.Commit()
 
 	return nil
 }
