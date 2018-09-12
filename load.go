@@ -236,9 +236,13 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, 
 			}
 
 			resourceType, _ := resource["resourceType"].(string)
-			id, _ := resource["id"].(string)
+			id, ok := resource["id"].(string)
 
-			batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2)", strings.ToLower(resourceType)), []interface{}{id, transformedResource}, []pgtype.OID{pgtype.TextOID, pgtype.JSONBOID}, nil)
+			if !ok || id == "" {
+				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES (gen_random_uuid()::text, 0, 'created', $1)", strings.ToLower(resourceType)), []interface{}{transformedResource}, []pgtype.OID{pgtype.JSONBOID}, nil)
+			} else {
+				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2)", strings.ToLower(resourceType)), []interface{}{id, transformedResource}, []pgtype.OID{pgtype.TextOID, pgtype.JSONBOID}, nil)
+			}
 
 			if curResource%batchSize == 0 || curResource == totalCount-1 {
 				// PrintMemUsage()
