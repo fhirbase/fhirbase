@@ -155,7 +155,7 @@ func main() {
 				},
 				cli.StringFlag{
 					Name:  "webhost",
-					Value: "localhost",
+					Value: "",
 					Usage: "Host to start webserver on",
 				},
 			},
