@@ -15,7 +15,7 @@ script:
     -e POSTGRES_DB=fhirbase postgres:10.4
   - bash -c 'while ! nc -z localhost 36363 ; do sleep 1 ; done'
   - PGUSER=postgres PGPASSWORD=postgres PGDATABASE=fhirbase PGPORT=36363 make test
-  - GOOS=linux GOARCH=amd64 BINSUFFIX=-linix-amd64 make
+  - GOOS=linux GOARCH=amd64 BINSUFFIX=-linux-amd64 make
   - GOOS=windows GOARCH=amd64 BINSUFFIX=-win-amd64.exe make
   - GOOS=darwin GOARCH=amd64 BINSUFFIX=-mac-amd64 make
 
