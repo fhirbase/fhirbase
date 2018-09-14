@@ -122,11 +122,16 @@ func main() {
 			Description: "This command loads FHIR data from various sources, i.e. local file or Bulk Data API server.",
 			Action:      LoadCommand,
 			Flags: []cli.Flag{
-				cli.UintFlag{
-					Name:  "batchsize, b",
-					Value: 2000,
-					Usage: "Number of INSERTs to send in one query",
+				cli.StringFlag{
+					Name:  "mode, m",
+					Value: "copy",
+					Usage: "Method how data import will be performed. Possible values: 'copy' or 'insert'",
 				},
+				// cli.UintFlag{
+				// 	Name:  "batchsize, b",
+				// 	Value: 2000,
+				// 	Usage: "Number of INSERTs to send in one query (applicable only to INSERT mode)",
+				// },
 				cli.UintFlag{
 					Name:  "numdl",
 					Value: 5,

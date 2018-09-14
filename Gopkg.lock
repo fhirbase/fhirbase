@@ -86,6 +86,14 @@
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:7f569d906bdd20d906b606415b7d794f798f91a62fcfb6a4daa6d50690fb7a3f"
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
+
+[[projects]]
   digest = "1:46cec24aa06289d48ea33f2b788c57de589a66ed5cbb320d39a1590462e65ec8"
   name = "github.com/urfave/cli"
   packages = ["."]
@@ -132,9 +140,9 @@
     "github.com/gobuffalo/packr",
     "github.com/google/go-cmp/cmp",
     "github.com/jackc/pgx",
-    "github.com/jackc/pgx/pgtype",
     "github.com/json-iterator/go",
     "github.com/pkg/errors",
+    "github.com/satori/go.uuid",
     "github.com/urfave/cli",
     "github.com/vbauerster/mpb",
     "github.com/vbauerster/mpb/decor",

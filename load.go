@@ -17,6 +17,8 @@ import (
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 	"github.com/vbauerster/mpb"
 	"github.com/vbauerster/mpb/decor"
@@ -26,6 +28,105 @@ type bundle interface {
 	Next() (map[string]interface{}, error)
 	Close()
 	Count() int
+}
+
+type loaderCb func(curType string, duration time.Duration)
+
+type loader interface {
+	Load(db *pgx.Conn, bndl bundle, cb loaderCb) error
+}
+
+type copyFromBundleSource struct {
+	bndl      bundle
+	err       error
+	res       map[string]interface{}
+	cb        loaderCb
+	currentRt string
+	prevTime  time.Time
+}
+
+func newCopyFromBundleSource(bndl bundle, cb loaderCb) *copyFromBundleSource {
+	s := new(copyFromBundleSource)
+
+	s.bndl = bndl
+	s.err = nil
+	s.cb = cb
+
+	res, _ := bndl.Next()
+	rt, _ := res["resourceType"].(string)
+
+	s.res = res
+	s.currentRt = rt
+	s.prevTime = time.Now()
+
+	return s
+}
+
+func (s *copyFromBundleSource) Next() bool {
+	if s.res != nil {
+		return true
+	}
+
+	res, err := s.bndl.Next()
+
+	if err != nil {
+		s.res = nil
+
+		if err != io.EOF {
+			s.err = err
+		} else {
+			s.currentRt = ""
+			s.err = nil
+		}
+
+		return false
+	}
+
+	nextResourceType, _ := res["resourceType"].(string)
+
+	if nextResourceType != s.currentRt {
+		s.currentRt = nextResourceType
+		s.res = res
+		s.prevTime = time.Now()
+		s.err = nil
+
+		return false
+	}
+
+	s.res = res
+	s.err = nil
+
+	return true
+}
+
+func (s *copyFromBundleSource) ResourceType() string {
+	return s.currentRt
+}
+
+func (s *copyFromBundleSource) Values() ([]interface{}, error) {
+	if s.res != nil {
+		res := s.res
+		s.res = nil
+
+		d := time.Since(s.prevTime)
+		s.prevTime = time.Now()
+
+		id, ok := res["id"].(string)
+
+		if !ok {
+			id = uuid.NewV4().String()
+		}
+
+		s.cb(s.currentRt, d)
+
+		return []interface{}{id, 0, "created", res}, nil
+	}
+
+	return nil, fmt.Errorf("No resource in the source")
+}
+
+func (s *copyFromBundleSource) Err() error {
+	return s.err
 }
 
 type multilineBundle struct {
@@ -38,11 +139,11 @@ type multilineBundle struct {
 }
 
 func (b *multilineBundle) Close() {
+	defer b.file.Close()
+
 	if b.gzr != nil {
 		b.gzr.Close()
 	}
-
-	defer b.file.Close()
 }
 
 func (b *multilineBundle) Count() int {
@@ -216,10 +317,35 @@ func countLinesInReader(r io.Reader) (int, error) {
 	}
 }
 
-func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, progressCb func(cur uint, curType string, total uint, duration time.Duration)) error {
+type copyLoader struct {
+	fhirVersion string
+}
+
+type insertLoader struct {
+	fhirVersion string
+}
+
+func (l *copyLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
+	src := newCopyFromBundleSource(bndl, cb)
+
+	for src.ResourceType() != "" {
+		tableName := strings.ToLower(src.ResourceType())
+
+		_, err := db.CopyFrom(pgx.Identifier{tableName}, []string{"id", "txid", "status", "resource"}, src)
+
+		if err != nil {
+			return errors.Wrap(err, "cannot perform COPY command")
+		}
+	}
+
+	return nil
+}
+
+func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 	batch := db.BeginBatch()
 	curResource := uint(0)
 	totalCount := uint(bndl.Count())
+	batchSize := uint(2000)
 	var err error
 
 	for err == nil {
@@ -228,7 +354,7 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, 
 		resource, err = bndl.Next()
 
 		if err == nil {
-			transformedResource, err := doTransform(resource, fhirVersion)
+			transformedResource, err := doTransform(resource, l.fhirVersion)
 
 			if err != nil {
 				fmt.Printf("Error during FB transform: %v\n", err)
@@ -257,7 +383,7 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, 
 			}
 
 			curResource++
-			progressCb(curResource, resourceType, totalCount, time.Since(startTime))
+			cb(resourceType, time.Since(startTime))
 		} else {
 			return err
 		}
@@ -266,45 +392,46 @@ func performLoad(db *pgx.Conn, bndl bundle, batchSize uint, fhirVersion string, 
 	return nil
 }
 
-func loadFiles(files []string, batchSize uint, fhirVersion string) error {
+func loadFiles(files []string, ldr loader) error {
 	db := GetConnection(nil)
 	defer db.Close()
 
 	startTime := time.Now()
-
 	bndl, err := newMultifileBundle(files)
-	defer bndl.Close()
 
 	if err != nil {
 		return err
 	}
+
+	totalCount := bndl.Count()
 
 	insertedCounts := make(map[string]uint)
 	bars := mpb.New(
 		mpb.WithWidth(100),
 	)
 
-	bar := bars.AddBar(int64(bndl.Count()),
+	bar := bars.AddBar(int64(totalCount),
 		mpb.AppendDecorators(
 			decor.Percentage(decor.WC{W: 3}),
 			decor.AverageETA(decor.ET_STYLE_MMSS, decor.WC{W: 6}),
 		),
 		mpb.PrependDecorators(decor.CountersNoUnit("%d / %d", decor.WC{W: 10})))
 
-	err = performLoad(db, bndl, batchSize, fhirVersion, func(cur uint, curType string, total uint, duration time.Duration) {
+	err = ldr.Load(db, bndl, func(curType string, duration time.Duration) {
 		insertedCounts[curType] = insertedCounts[curType] + 1
 		bar.IncrBy(1, duration)
 	})
 
-	bars.Wait()
-
 	if err != nil && err != io.EOF {
+		bars.Abort(bar, false)
 		return err
 	}
 
+	bars.Wait()
+
 	loadDuration := time.Since(startTime) / time.Second
 
-	fmt.Printf("Done, inserted %d resources in %d seconds:\n", bndl.Count(), loadDuration)
+	fmt.Printf("Done, inserted %d resources in %d seconds:\n", totalCount, loadDuration)
 
 	tblw := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 
@@ -325,6 +452,22 @@ func LoadCommand(c *cli.Context) error {
 	}
 
 	fhirVersion := c.GlobalString("fhir")
+	mode := c.String("mode")
+	var ldr loader
+
+	if mode != "copy" && mode != "insert" {
+		return fmt.Errorf("invalid value for --mode flag. Possible values are either 'copy' or 'insert'")
+	}
+
+	if mode == "copy" {
+		ldr = &copyLoader{
+			fhirVersion: fhirVersion,
+		}
+	} else {
+		ldr = &insertLoader{
+			fhirVersion: fhirVersion,
+		}
+	}
 
 	if strings.HasPrefix(c.Args().Get(0), "http") {
 		numWorkers := c.Uint("numdl")
@@ -348,8 +491,8 @@ func LoadCommand(c *cli.Context) error {
 			f.Close()
 		}
 
-		return loadFiles(files, c.Uint("batchsize"), fhirVersion)
+		return loadFiles(files, ldr)
 	}
 
-	return loadFiles(c.Args(), c.Uint("batchsize"), fhirVersion)
+	return loadFiles(c.Args(), ldr)
 }
