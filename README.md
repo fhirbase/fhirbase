@@ -1,6 +1,6 @@
 # Fhirbase 3.0
 
-[![Build Status](https://travis-ci.org/fhirbase/fhirbase-core.svg?branch=master)](https://travis-ci.org/fhirbase/fhirbase-core)
+[![Build Status](https://travis-ci.org/fhirbase/fhirbase.svg?branch=master)](https://travis-ci.org/fhirbase/fhirbase)
 
 * [Documentation](https://fhirbase.gitbook.io/project/)
 * [Demo](http://fhirbase.github.io/)
@@ -27,7 +27,7 @@ make
 
 source dev/.env
 bin/fhirbase -d fhirbase init
-curl https://storage.googleapis.com/aidbox-public/sample-data.gzip > /tmp/data.gzip 
+curl https://storage.googleapis.com/aidbox-public/sample-data.gzip > /tmp/data.gzip
 bin/fhirbase -d fhirbase load /tmp/data.gzip
 
 ```
