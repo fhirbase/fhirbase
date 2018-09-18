@@ -54,7 +54,7 @@ want to start PostgreSQL as a Docker container:
 
     $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres:latest
 
-## Checking Postgres Connection
+## Checking Postgres connection
 
 After you finished installing Postgres, please check it's running and
 accepting TCP/IP connections.
@@ -92,6 +92,33 @@ described in this [wiki
 article](https://wiki.postgresql.org/wiki/Client_Authentication).
 
 TODO: better troubleshooting guide.
+
+## Downloading and installing Fhirbase
+
+Go to [GitHub Releases
+page](https://github.com/fhirbase/fhirbase/releases) and download most
+recent release of Fhirbase. Make sure you've picked right file, it
+should match your operating system and CPU architecture. Nightly-build
+release is being updated after every commit to master branch, so it
+might be unstable.
+
+When you downloaded Fhirbase binary, rename it from `fhirbase-os-arch`
+for to just `fhirbase` and put in some directory listed in you `$PATH`
+environment variable.
+
+If you don't know what the `$PATH` variable is, it's ok, you can skip
+this step. But you'll have to type full path to the `fhirbase`
+executable every time you'll invoke Fhirbase command. So intead of typing
+
+    $ fhirbase help
+
+you'll need to type something like this:
+
+    $ /Users/xxxx/Downloads/fhirbase help
+
+So please remember that if your shell says it cannot find `fhirbase`
+command, most likely `fhirbase` binary wasn't correctly placed inside
+`$PATH`.
 
 ## Development
 
