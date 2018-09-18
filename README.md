@@ -12,21 +12,21 @@ operations](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete)
 and mantain [Resources
 History](https://www.hl7.org/fhir/http.html#history).
 
-# Getting Started
+## Installing PostgreSQL
 
 To start using Fhirbase you have to install [PostgreSQL
-Database](https://www.postgresql.org/) first. Any version above
+database](https://www.postgresql.org/) first. Any version above
 **9.6** should be fine.  Please proceed to the section describing
 operating system you're running.
 
-## Windows
+### Windows
 
 For Windows the most simple way is to use EnterpriseDB PostgreSQL
 Installer. Also there is a [YouTube
 Video](https://www.youtube.com/watch?v=e1MwsT5FJRQ) demonstrating the
 whole installation process.
 
-## Linux
+### Linux
 
 Most likely that PostgreSQL will be available through your
 distribition's package manager. On Ubuntu or Debian, it's as easy as
@@ -36,7 +36,7 @@ distribition's package manager. On Ubuntu or Debian, it's as easy as
 For other Linux distributions, please use search functionality of your
 package manager or just Google right command.
 
-## MacOS
+### MacOS
 
 You can install PostgreSQL with [Homebrew](https://brew.sh/):
 
@@ -46,12 +46,51 @@ As an alternative, there is a [Postgres.app](https://postgresapp.com/)
 project which provides PostgreSQL as a regular MacOS application with
 common drag-and-drop installation.
 
-## Docker (cross-platform)
+### Docker (cross-platform)
 
 If you have [Docker](https://www.docker.com/) installed, you might
 want to start PostgreSQL as a Docker container:
 
     $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres:latest
+
+## Checking Postgres Connection
+
+After you finished installing Postgres, please check it's running and
+accepting TCP/IP connections.
+
+You can do this with `psql` command-line client or with
+[pgAdmin](https://www.pgadmin.org/) GUI application. For `psql`, use
+following command:
+
+```
+$ psql -h localhost -p 5432 -U postgres -W postgres
+Password for user postgres: xxxxxxxxxx
+psql (10.4, server 9.6.3)
+Type "help" for help.
+
+postgres=# _
+```
+
+If you got `postgres=#` prompt waiting for your input, your
+installation is fine. You can quit `psql` typing `\q` followed by
+Enter.
+
+If you got an error like this instead:
+
+```
+psql: could not connect to server: Connection refused
+        Is the server running on host "localhost" (127.0.0.1) and accepting
+        TCP/IP connections on port 5432?
+```
+
+then it looks like PostgreSQL is either not running or not accepting
+TCP/IP connections. Please check presence of `postgres` process using
+your operating system's Process Viewer (or Task Manager). If `postges`
+process is running, please consider updating `pg_hba.conf` file as
+described in this [wiki
+article](https://wiki.postgresql.org/wiki/Client_Authentication).
+
+TODO: better troubleshooting guide.
 
 ## Development
 
