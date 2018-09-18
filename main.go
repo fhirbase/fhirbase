@@ -30,7 +30,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "fhirbase"
-	app.Usage = "command-line tool to create fhirbase schema and import FHIR data"
+	app.Usage = "command-line utility to operate on FHIR data with PostgreSQL database."
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -79,17 +79,18 @@ func main() {
 			Name:        "init",
 			HelpName:    "init",
 			Hidden:      false,
-			Usage:       "Creates FHIRBase schema in Postgres database",
-			UsageText:   "This command creates tables and other stuff to store your FHIR stuff.",
-			Description: "This command creates tables and other stuff to store your FHIR stuff.",
+			Usage:       "Creates FHIRbase schema in specific database",
+			UsageText:   "fhirbase [--fhir=FHIR version] [postgres connection options] init",
+			Description: "Creates SQL to store FHIR resources for specified FHIR version, as well as stored procedures for CRUD operations. Database should be empty, otherwise this command will fail with an error.",
 			Action:      InitCommand,
 		},
 		{
 			Name:        "transform",
 			HelpName:    "transform",
 			Hidden:      false,
-			Usage:       "Performs FHIRBase transformation on a single resource from JSON file",
-			Description: "This command transforms FHIR resource from specific file to internal FHIRBase representation and outputs result to STDOUT.",
+			Usage:       "Performs FHIRbase transformation on a single FHIR resource loaded from JSON file",
+			UsageText:   "fhirbase [--fhir=FHIR version] transform path/to/fhir-resource.json",
+			Description: "This command transforms FHIR resource from specific file into internal FHIRbase representation and outputs result to STDOUT.",
 			Action:      TransformCommand,
 		},
 		{
@@ -97,8 +98,9 @@ func main() {
 			HelpName:    "bulkget",
 			Hidden:      false,
 			ArgsUsage:   "[BULK DATA ENDPOINT] [TARGET DIR]",
-			Usage:       "Downloads FHIR data from Bulk Data API endpoint",
-			Description: "Downloads FHIR data from Bulk Data API endpoint.",
+			Usage:       "Downloads FHIR data from Bulk Data API endpoint and save it on local filesystem",
+			UsageText:   "fhirbase bulkget --numdl=10 http://some-fhir-server.com/fhir/Patient/$everything ./output-dir/",
+			Description: "Downloads FHIR data from Bulk Data API endpoint and saves results into specific directory on local filesystem.",
 			Action:      BulkGetCommand,
 			Flags: []cli.Flag{
 				cli.UintFlag{
@@ -117,7 +119,7 @@ func main() {
 			Name:        "load",
 			HelpName:    "load",
 			Hidden:      false,
-			Usage:       "Loads FHIR data (resources) into database",
+			Usage:       "Imports FHIR resources into specific database",
 			ArgsUsage:   "[BULK DATA URL OR FILE PATHS]",
 			Description: "This command loads FHIR data from various sources, i.e. local file or Bulk Data API server.",
 			Action:      LoadCommand,
@@ -148,7 +150,7 @@ func main() {
 			Name:        "web",
 			HelpName:    "web",
 			Hidden:      false,
-			Usage:       "Starts simple web server to invoke SQL queries from browser",
+			Usage:       "Starts web server with primitive UI to perform SQL queries from the browser",
 			ArgsUsage:   "",
 			Description: "Starts simple web server to invoke SQL queries from browser",
 			Action:      WebCommand,

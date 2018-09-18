@@ -18,8 +18,7 @@ RUN PGDATA=/pgdata /docker-entrypoint.sh postgres & until psql -U postgres -c '\
     done && \
     psql -U postgres -c 'create database fhirbase;' && \
     ./fhirbase -d fhirbase init && \
-    ./fhirbase -d fhirbase load ./bundle.ndjson.gzip && \
-    ls -lah /var/lib/postgresql/data/
+    ./fhirbase -d fhirbase load --mode='insert' ./bundle.ndjson.gzip
 
 EXPOSE 3000
 
