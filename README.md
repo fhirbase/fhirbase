@@ -6,7 +6,6 @@
 * [Demo](http://fhirbase.github.io/)
 * [Chat](https://chat.fhir.org/#narrow/stream/16-fhirbase)
 * [Google Group](https://groups.google.com/forum/#!forum/fhirbase)
-* [StackOverflow](???)
 
 ## Development
 

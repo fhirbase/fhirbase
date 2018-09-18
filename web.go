@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gobuffalo/packr"
 	"github.com/jackc/pgx"
@@ -12,6 +14,112 @@ import (
 )
 
 var pool *pgx.ConnPool
+
+func qHandler(w http.ResponseWriter, r *http.Request) {
+	sql := r.URL.Query().Get("query")
+	w.Header().Set("Content-Type", "application/json")
+
+	if len(sql) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("{\"message\": \"Please provide 'query' query-string param\"}"))
+		return
+	}
+
+	conn, err := pool.Acquire()
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"message\": \"Cannot acquire DB connection\"}"))
+		return
+	}
+
+	defer pool.Release(conn)
+
+	stream := jsoniter.ConfigFastest.BorrowStream(w)
+	defer jsoniter.ConfigFastest.ReturnStream(stream)
+
+	rows, err := conn.Query(sql)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		stream.WriteVal(map[string]string{
+			"message": err.Error(),
+		})
+		stream.Flush()
+
+		return
+	}
+
+	defer rows.Close()
+
+	stream.WriteObjectStart()
+	stream.WriteObjectField("columns")
+	stream.WriteVal(rows.FieldDescriptions())
+	stream.WriteMore()
+	stream.WriteObjectField("rows")
+	stream.WriteArrayStart()
+
+	hasRows := rows.Next()
+
+	for hasRows {
+		vals, err := rows.Values()
+
+		if err == nil {
+			stream.WriteVal(vals)
+		} else {
+			stream.WriteNil()
+		}
+
+		hasRows = rows.Next()
+
+		if hasRows {
+			stream.WriteMore()
+		}
+	}
+
+	stream.WriteArrayEnd()
+	stream.WriteObjectEnd()
+
+	stream.Flush()
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	conn, err := pool.Acquire()
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"message\": \"Cannot acquire DB connection\"}"))
+		return
+	}
+
+	defer pool.Release(conn)
+
+	rows, err := conn.Query("SELECT 1+1")
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{ \"message\": \"cannot perform query\" }"))
+		return
+	}
+
+	defer rows.Close()
+
+	w.Write([]byte("{ \"message\": \"ich bin gesund\" }"))
+}
+
+func logging(logger *log.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				logger.Println(r.Method, r.URL, r.RemoteAddr, r.UserAgent())
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
+}
 
 // WebAction starts HTTP server and serves basic FB API
 func WebCommand(c *cli.Context) error {
@@ -25,86 +133,38 @@ func WebCommand(c *cli.Context) error {
 	connStr := fmt.Sprintf("dbname=%s sslmode=disable user=%s password=%s host=%s port=%d",
 		mainConfig.Database, mainConfig.User, mainConfig.Password, mainConfig.Host, mainConfig.Port)
 
-	pool, err := pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: mainConfig})
+	var err error
+	pool, err = pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: mainConfig})
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Unable to connect to database:", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Connected to database %s\n", connStr)
+	logger := log.New(os.Stdout, "", log.LstdFlags)
 
-	http.Handle("/", http.FileServer(box))
+	logger.Printf("Connected to database %s\n", connStr)
 
-	http.HandleFunc("/q", func(w http.ResponseWriter, r *http.Request) {
-		sql := r.URL.Query().Get("query")
-		w.Header().Set("Content-Type", "application/json")
+	router := http.NewServeMux()
+	router.Handle("/", http.FileServer(box))
+	router.HandleFunc("/q", qHandler)
+	router.HandleFunc("/health", healthHandler)
 
-		if len(sql) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("{\"message\": \"Please provide 'query' query-string param\"}"))
-			return
-		}
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      logging(logger)(router),
+		ErrorLog:     logger,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  15 * time.Second,
+	}
 
-		conn, err := pool.Acquire()
+	logger.Printf("Starting web server on %s\n", addr)
 
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("{\"message\": \"Cannot acquire DB connection\"}"))
-			return
-		}
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Fatalf("Could not listen on %s: %v\n", addr, err)
+	}
 
-		defer pool.Release(conn)
-
-		stream := jsoniter.ConfigFastest.BorrowStream(w)
-		defer jsoniter.ConfigFastest.ReturnStream(stream)
-
-		rows, err := conn.Query(sql)
-
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-
-			stream.WriteVal(map[string]string{
-				"message": err.Error(),
-			})
-			stream.Flush()
-
-			return
-		}
-
-		defer rows.Close()
-
-		stream.WriteObjectStart()
-		stream.WriteObjectField("columns")
-		stream.WriteVal(rows.FieldDescriptions())
-		stream.WriteMore()
-		stream.WriteObjectField("rows")
-		stream.WriteArrayStart()
-
-		hasRows := rows.Next()
-
-		for hasRows {
-			vals, err := rows.Values()
-
-			if err == nil {
-				stream.WriteVal(vals)
-			} else {
-				stream.WriteNil()
-			}
-
-			hasRows = rows.Next()
-
-			if hasRows {
-				stream.WriteMore()
-			}
-		}
-
-		stream.WriteArrayEnd()
-		stream.WriteObjectEnd()
-
-		stream.Flush()
-	})
-
-	fmt.Printf("Starting web server on %s\n", addr)
-	return http.ListenAndServe(addr, nil)
+	logger.Println("Server stopped")
+	return nil
 }
