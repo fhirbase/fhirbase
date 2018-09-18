@@ -21,8 +21,9 @@ operating system you're running.
 
 ### Windows
 
-For Windows the most simple way is to use EnterpriseDB PostgreSQL
-Installer. Also there is a [YouTube
+For Windows the most simple way is to use [EnterpriseDB PostgreSQL
+Installer](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Also
+there is a [YouTube
 Video](https://www.youtube.com/watch?v=e1MwsT5FJRQ) demonstrating the
 whole installation process.
 
@@ -34,7 +35,7 @@ distribition's package manager. On Ubuntu or Debian, it's as easy as
     $ sudo apt-get install postgresql postgresql-client
 
 For other Linux distributions, please use search functionality of your
-package manager or just Google right command.
+package manager or just Google the right command.
 
 ### MacOS
 
