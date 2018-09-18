@@ -140,6 +140,7 @@
     "github.com/gobuffalo/packr",
     "github.com/google/go-cmp/cmp",
     "github.com/jackc/pgx",
+    "github.com/jackc/pgx/pgtype",
     "github.com/json-iterator/go",
     "github.com/pkg/errors",
     "github.com/satori/go.uuid",

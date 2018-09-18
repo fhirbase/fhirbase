@@ -29,7 +29,7 @@ $(BASE):
 	@mkdir -p $(dir $@)
 	@ln -sf $(CURDIR) $@
 
-vendor: | $(BASE)
+vendor: Gopkg.lock | $(BASE)
 	cd $(BASE) && $(DEP) ensure
 	for dep in `cd $(BASE)/vendor && find * -type d -maxdepth 3 -mindepth 2`; do \
 	echo "building $$dep"; \
