@@ -1,12 +1,16 @@
 # Fhirbase 3.0
 
-[![Build Status](https://travis-ci.org/fhirbase/fhirbase.svg?branch=master)](https://travis-ci.org/fhirbase/fhirbase)
+**[Download the Latest Release](https://github.com/fhirbase/fhirbase/releases/tag/nightly-build)**  •  [Documentation](https://fhirbase.gitbook.io/project/)  •  [Demo](http://fhirbase.github.io/)  •  [Chat](https://chat.fhir.org/#narrow/stream/16-fhirbase)  •  [Google Group](https://groups.google.com/forum/#!forum/fhirbase)
 
-**[Download The Latest Release](https://github.com/fhirbase/fhirbase/releases/tag/nightly-build)** • [Documentation](https://fhirbase.gitbook.io/project/) • [Demo](http://fhirbase.github.io/) • [Chat](https://chat.fhir.org/#narrow/stream/16-fhirbase) • [Google Group](https://groups.google.com/forum/#!forum/fhirbase)
+[![Build Status](https://travis-ci.org/fhirbase/fhirbase.svg?branch=master)](https://travis-ci.org/fhirbase/fhirbase)
 
 Fhirbase is a command-line utility wich enables you to easily import
 [FHIR data](https://www.hl7.org/fhir/) into a PostgreSQL database and
-work with it in a relational way.
+work with it in a relational way. Also Fhirbase provides set of stored
+procedures to perform [CRUD
+operations](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete)
+and mantain [Resources
+History](https://www.hl7.org/fhir/http.html#history).
 
 ## Development
 
