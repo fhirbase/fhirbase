@@ -37,15 +37,16 @@ type loader interface {
 }
 
 type copyFromBundleSource struct {
-	bndl      bundle
-	err       error
-	res       map[string]interface{}
-	cb        loaderCb
-	currentRt string
-	prevTime  time.Time
+	bndl        bundle
+	err         error
+	res         map[string]interface{}
+	cb          loaderCb
+	currentRt   string
+	prevTime    time.Time
+	fhirVersion string
 }
 
-func newCopyFromBundleSource(bndl bundle, cb loaderCb) *copyFromBundleSource {
+func newCopyFromBundleSource(bndl bundle, fhirVersion string, cb loaderCb) *copyFromBundleSource {
 	s := new(copyFromBundleSource)
 
 	s.bndl = bndl
@@ -58,6 +59,7 @@ func newCopyFromBundleSource(bndl bundle, cb loaderCb) *copyFromBundleSource {
 	s.res = res
 	s.currentRt = rt
 	s.prevTime = time.Now()
+	s.fhirVersion = fhirVersion
 
 	return s
 }
@@ -108,14 +110,20 @@ func (s *copyFromBundleSource) Values() ([]interface{}, error) {
 		res := s.res
 		s.res = nil
 
-		d := time.Since(s.prevTime)
-		s.prevTime = time.Now()
+		res, err := doTransform(res, s.fhirVersion)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot perform transform")
+		}
 
 		id, ok := res["id"].(string)
 
 		if !ok {
 			id = uuid.NewV4().String()
 		}
+
+		d := time.Since(s.prevTime)
+		s.prevTime = time.Now()
 
 		s.cb(s.currentRt, d)
 
@@ -291,7 +299,7 @@ func PrintMemUsage() {
 	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
 	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
 	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
-	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+	fmt.Printf("\tNumGC = %v\n\n", m.NumGC)
 }
 
 func bToMb(b uint64) uint64 {
@@ -326,7 +334,7 @@ type insertLoader struct {
 }
 
 func (l *copyLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
-	src := newCopyFromBundleSource(bndl, cb)
+	src := newCopyFromBundleSource(bndl, l.fhirVersion, cb)
 
 	for src.ResourceType() != "" {
 		tableName := strings.ToLower(src.ResourceType())
@@ -392,7 +400,7 @@ func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 	return nil
 }
 
-func loadFiles(files []string, ldr loader) error {
+func loadFiles(files []string, ldr loader, memUsage bool) error {
 	db := GetConnection(nil)
 	defer db.Close()
 
@@ -406,6 +414,8 @@ func loadFiles(files []string, ldr loader) error {
 	totalCount := bndl.Count()
 
 	insertedCounts := make(map[string]uint)
+	currentIdx := 0
+
 	bars := mpb.New(
 		mpb.WithWidth(100),
 	)
@@ -418,6 +428,11 @@ func loadFiles(files []string, ldr loader) error {
 		mpb.PrependDecorators(decor.CountersNoUnit("%d / %d", decor.WC{W: 10})))
 
 	err = ldr.Load(db, bndl, func(curType string, duration time.Duration) {
+		if memUsage && currentIdx%3000 == 0 {
+			PrintMemUsage()
+		}
+
+		currentIdx = currentIdx + 1
 		insertedCounts[curType] = insertedCounts[curType] + 1
 		bar.IncrBy(1, duration)
 	})
@@ -469,6 +484,8 @@ func LoadCommand(c *cli.Context) error {
 		}
 	}
 
+	memUsage := c.Bool("memusage")
+
 	if strings.HasPrefix(c.Args().Get(0), "http") {
 		numWorkers := c.Uint("numdl")
 		acceptHdr := c.String("accept-header")
@@ -491,8 +508,8 @@ func LoadCommand(c *cli.Context) error {
 			f.Close()
 		}
 
-		return loadFiles(files, ldr)
+		return loadFiles(files, ldr, memUsage)
 	}
 
-	return loadFiles(c.Args(), ldr)
+	return loadFiles(c.Args(), ldr, memUsage)
 }

@@ -129,15 +129,14 @@ func main() {
 					Value: "copy",
 					Usage: "Method how data import will be performed. Possible values: 'copy' or 'insert'",
 				},
-				// cli.UintFlag{
-				// 	Name:  "batchsize, b",
-				// 	Value: 2000,
-				// 	Usage: "Number of INSERTs to send in one query (applicable only to INSERT mode)",
-				// },
 				cli.UintFlag{
 					Name:  "numdl",
 					Value: 5,
 					Usage: "Number of parallel downloads for Bulk Data API client",
+				},
+				cli.BoolFlag{
+					Name:  "memusage",
+					Usage: "Outputs memory usage during resources loading (for debug purposes)",
 				},
 				cli.StringFlag{
 					Name:  "accept-header",
