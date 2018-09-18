@@ -51,7 +51,7 @@ common drag-and-drop installation.
 If you have [Docker](https://www.docker.com/) installed, you might
 want to start PostgreSQL as a Docker container:
 
-   $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres:latest
+    $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres:latest
 
 ## Development
 
