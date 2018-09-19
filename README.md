@@ -1,4 +1,4 @@
-# Fhirbase 3.0
+# Fhirbase
 
 **[Download the Latest Release](https://github.com/fhirbase/fhirbase/releases/tag/nightly-build)**&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;**[Try Online](https://fbdemo.aidbox.app/)**&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;[Documentation](https://fhirbase.gitbook.io/project/)&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;[Chat](https://chat.fhir.org/#narrow/stream/16-fhirbase)&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;[Google Group](https://groups.google.com/forum/#!forum/fhirbase)
 
@@ -147,12 +147,12 @@ to create schema - some tables and stored procedures. This operation
 is performed with `fhirbase init` command:
 
 ```
-fhirbase -h localhost -p 5432 -d fhirbase -U postgres -W postgres --fhir=3.3.0 init
+fhirbase --host localhost -p 5432 -d fhirbase -U postgres -W postgres --fhir=3.3.0 init
 ```
 
 Let's briefly describe meaning of command-line arguments:
 
-* `-h localhost` specifies host where Postgres is running
+* `--host localhost` specifies host where Postgres is running
 * `-p 5432` specifies Postgres port
 * `-d fhirbase` specifies name of the database to connect to (don't forget to change it if you named database differently)
 * `-U postgres` name of Postgres user, "postgres" is fine for most cases
@@ -177,7 +177,7 @@ it](https://github.com/fhirbase/fhirbase/blob/master/demo/bundle.ndjson.gzip). W
 this file is on your local filesystem, invoke `fhirbase load` command:
 
 ```
-fhirbase -h localhost -p 5432 -d fhirbase -U postgres -W postgres --fhir=3.3.0 load -m insert /path/to/downloaded/file/bundle.ndjson.gzip
+fhirbase --host localhost -p 5432 -d fhirbase -U postgres -W postgres --fhir=3.3.0 load -m insert /path/to/downloaded/file/bundle.ndjson.gzip
 ```
 
 Usually it takes from 25 to 45 seconds to import this file. At the end of the input Fhirbase will output statistics about inserted data:
@@ -205,43 +205,56 @@ Also you can note `-m insert` argument in previous command, it forces
 Fhirbase to use `INSERT` statements instead of `COPY` statement. For
 some bundles you'll want to use `INSERT` and for some `COPY` will be
 faster. You can find the difference in the help section of the `load`
-command:
+command.
+
+To import data from Bulk Data API endpoint, put endpoint URL instead
+of file name:
 
 ```
-fhirbase help load
+fhirbase --host localhost -p 5432 -d fhirbase -U postgres -W postgres --fhir=3.3.0 load -m insert https://fhir-open.stagingcerner.com/r4/a758f80e-aa74-4118-80aa-98cc75846c76/Patient/\$export\?_format=json
 ```
+
+Fhirbase will download ndjson files produced by server and then import
+them into database.
+
+## Running Web UI and invoking SQL queries
+
+Fhirbase contains tiny web server to provide basic Web UI for querying
+database. You can use it instead of desktop Postgres clients for
+simplicity. Following command will start Fhirbase webserver on
+http://localhost:3000
+
+```
+fhirbase --host localhost -p 5432 -d fhirbase -U postgres -W postgres web
+```
+
+Point your browser to http://localhost:3000 and type following query
+in the editor:
+
+``` sql
+SELECT COUNT(*), resource#>>'{name,0,given,0}'
+FROM patient
+GROUP BY resource#>>'{name,0,given,0}'
+ORDER BY COUNT(*) DESC;
+```
+
+As a result you'll get most popular first names for patients stored in
+your database.
 
 ## Development
 
-For macos:
+To participate in Fhirbase development you'll need to install Golang
+and [Dep package
+manager](https://golang.github.io/dep/docs/installation.html).
 
-```
-brew install go
-brew install dep
+Fhirbase is Makefile-based project, so building it is as simple as
+invoking `make` command.
 
-# use your local postgres or
-cd dev
-source .env
-docker-compose up -d
-cd ..
+NB you can put Fhirbase source code outside of `GOPATH` env variable
+because Makefile sets `GOPATH` value to `fhirbase-root/.gopath`.
 
-make
+## License
 
-source dev/.env
-bin/fhirbase -d fhirbase init
-curl https://storage.googleapis.com/aidbox-public/sample-data.gzip > /tmp/data.gzip
-bin/fhirbase -d fhirbase load /tmp/data.gzip
+Copyright © 2018 [Health Samurai](https://www.health-samurai.io/) team.
 
-```
-
-This project is Makefile-based. At first, you need to install Golang
-and [Glide](https://github.com/Masterminds/glide). Then building entire project is as simple as:
-
-    $ make
-
-Other possible build targets are:
-
-    $ make fmt     # runs go fmt
-    $ make lint    # runs golint
-    $ make vendor  # runs Glide to install dependencies
-    $ make clean   # cleanups everything
+Fhirbase is released under the terms of the MIT License.

@@ -126,7 +126,7 @@ func main() {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "mode, m",
-					Value: "copy",
+					Value: "insert",
 					Usage: "Method how data import will be performed. Possible values: 'copy' or 'insert'",
 				},
 				cli.UintFlag{
