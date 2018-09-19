@@ -21,6 +21,13 @@ database](https://www.postgresql.org/) first. Any version above
 **9.6** should be fine.  Please proceed to the section describing
 operating system you're running.
 
+### Docker (cross-platform)
+
+If you have [Docker](https://www.docker.com/) installed, you might
+want to start PostgreSQL as a Docker container:
+
+    $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=postgres -d postgres:latest
+
 ### Windows
 
 For Windows the most simple way is to use [EnterpriseDB PostgreSQL
@@ -45,16 +52,16 @@ You can install PostgreSQL with [Homebrew](https://brew.sh/):
 
     $ brew install postgresql
 
+Also you'll need to create default user with some password (we advice
+to use "postgres" as password for simplicity):
+
+    $ createuser -s -P postgres
+    Enter password for new role: postgres
+    Enter it again: postgres
+
 As an alternative, there is a [Postgres.app](https://postgresapp.com/)
 project which provides PostgreSQL as a regular MacOS application with
 common drag-and-drop installation.
-
-### Docker (cross-platform)
-
-If you have [Docker](https://www.docker.com/) installed, you might
-want to start PostgreSQL as a Docker container:
-
-    $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres:latest
 
 ## Checking Postgres connection
 
