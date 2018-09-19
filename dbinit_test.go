@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx"
 )
@@ -53,7 +54,7 @@ func TestInitAllSchemas(t *testing.T) {
 		}
 
 		db := GetConnection(&DbConfig)
-		PerformInit(db, version)
+		PerformInit(db, version, func(c int, t int64, d time.Duration) {})
 		db.Close()
 	}
 }
