@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/fhirbase/fhirbase.svg?branch=master)](https://travis-ci.org/fhirbase/fhirbase)
 
-Fhirbase is a command-line utility wich enables you to easily import
+Fhirbase is a command-line utility which enables you to easily import
 [FHIR data](https://www.hl7.org/fhir/) into a PostgreSQL database and
 work with it in a relational way. Also Fhirbase provides set of stored
 procedures to perform [CRUD
@@ -30,7 +30,7 @@ whole installation process.
 ### Linux
 
 Most likely that PostgreSQL will be available through your
-distribition's package manager. On Ubuntu or Debian, it's as easy as
+distribution's package manager. On Ubuntu or Debian, it's as easy as
 
     $ sudo apt-get install postgresql postgresql-client
 
@@ -86,7 +86,7 @@ psql: could not connect to server: Connection refused
 
 then it looks like PostgreSQL is either not running or not accepting
 TCP/IP connections. Please check presence of `postgres` process using
-your operating system's Process Viewer (or Task Manager). If `postges`
+your operating system's Process Viewer (or Task Manager). If `postgres`
 process is running, please consider updating `pg_hba.conf` file as
 described in this [wiki
 article](https://wiki.postgresql.org/wiki/Client_Authentication).
@@ -108,7 +108,8 @@ environment variable.
 
 If you don't know what the `$PATH` variable is, it's ok, you can skip
 this step. But you'll have to type full path to the `fhirbase`
-executable every time you'll invoke Fhirbase command. So intead of typing
+executable every time you'll invoke Fhirbase command. So instead of
+typing
 
     $ fhirbase help
 
