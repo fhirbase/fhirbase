@@ -24,7 +24,7 @@ operating system you're running.
 For Windows the most simple way is to use [EnterpriseDB PostgreSQL
 Installer](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Also
 there is a [YouTube
-Video](https://www.youtube.com/watch?v=e1MwsT5FJRQ) demonstrating the
+video](https://www.youtube.com/watch?v=e1MwsT5FJRQ) demonstrating the
 whole installation process.
 
 ### Linux
@@ -120,7 +120,7 @@ So please remember that if your shell says it cannot find `fhirbase`
 command, most likely `fhirbase` binary wasn't correctly placed inside
 `$PATH`.
 
-## Creating and initializing the database
+## Creating and initializing database
 
 Next step is to create database where we're going to store FHIR
 data. Again, we can use `psql` command-line client or some GUI client
@@ -139,8 +139,77 @@ postgres=# CREATE DATABASE fhirbase;
 Do not forget to put semicolon at the end of statement. Of course, you
 can change "fhirbase" to any database name you want.
 
-If you got `CREATE DATABASE` text as a response to your command, then
+If you got `CREATE DATABASE` text as a response to your command, your
 database was succesfully created. Type `\q` to quit `psql`.
+
+Now we have database, but before loading any FHIR data into it we need
+to create schema - some tables and stored procedures. This operation
+is performed with `fhirbase init` command:
+
+```
+fhirbase -h localhost -p 5432 -d fhirbase -U postgres -W postgres --fhir=3.3.0 init
+```
+
+Let's briefly describe meaning of command-line arguments:
+
+* `-h localhost` specifies host where Postgres is running
+* `-p 5432` specifies Postgres port
+* `-d fhirbase` specifies name of the database to connect to (don't forget to change it if you named database differently)
+* `-U postgres` name of Postgres user, "postgres" is fine for most cases
+* `-W postgres` user's password
+* `--fhir=3.3.0` FHIR version you're going to use
+
+If you got no error, database was initialized. Most common errors are
+connection errors (check your Postgres credentials) and SQL errors
+(you're trying to initialize non-empty database).
+
+## Importing FHIR data
+
+We're ready to import data into our newly created database. We can
+import data from two different sources:
+
+* local files (ndjson files)
+* [Bulk Data API](https://github.com/smart-on-fhir/fhir-bulk-data-docs) endpoints
+
+Let's try to use local file first. Fhirbase GitHub repository contains
+sample file, go ahead and [download
+it](https://github.com/fhirbase/fhirbase/blob/master/demo/bundle.ndjson.gzip). When
+this file is on your local filesystem, invoke `fhirbase load` command:
+
+```
+fhirbase -h localhost -p 5432 -d fhirbase -U postgres -W postgres --fhir=3.3.0 load -m insert /path/to/downloaded/file/bundle.ndjson.gzip
+```
+
+Usually it takes from 25 to 45 seconds to import this file. At the end of the input Fhirbase will output statistics about inserted data:
+
+```
+Done, inserted 127454 resources in 27 seconds:
+       ImagingStudy 135
+ AllergyIntolerance 272
+              Claim 17937
+               Goal 1100
+          Encounter 15384
+          Procedure 14109
+       Immunization 6548
+           CarePlan 1544
+              Basic 600
+       Organization 768
+   DiagnosticReport 4143
+  MedicationRequest 2553
+            Patient 600
+          Condition 4142
+        Observation 57619
+```
+
+Also you can note `-m insert` argument in previous command, it forces
+Fhirbase to use `INSERT` statements instead of `COPY` statement. For
+some bundles you'll want to use `INSERT` and for some `COPY` will be
+faster. You can find the difference in the help section of the `load`
+command:
+
+```
+fhirbase help load
+```
 
 ## Development
 
