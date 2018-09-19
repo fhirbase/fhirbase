@@ -120,6 +120,28 @@ So please remember that if your shell says it cannot find `fhirbase`
 command, most likely `fhirbase` binary wasn't correctly placed inside
 `$PATH`.
 
+## Creating and initializing the database
+
+Next step is to create database where we're going to store FHIR
+data. Again, we can use `psql` command-line client or some GUI client
+like pgAdmin. Connect to Postgres as you previously did:
+
+```
+$ psql -h localhost -p 5432 -U postgres -W postgres
+```
+
+To create database there is a `CREATE DATABASE` statement:
+
+```
+postgres=# CREATE DATABASE fhirbase;
+```
+
+Do not forget to put semicolon at the end of statement. Of course, you
+can change "fhirbase" to any database name you want.
+
+If you got `CREATE DATABASE` text as a response to your command, then
+database was succesfully created. Type `\q` to quit `psql`.
+
 ## Development
 
 For macos:
