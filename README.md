@@ -256,6 +256,14 @@ invoking `make` command.
 NB you can put Fhirbase source code outside of `GOPATH` env variable
 because Makefile sets `GOPATH` value to `fhirbase-root/.gopath`.
 
+To develop demo run 
+
+```
+env DEV=1 fhirbase web
+```
+
+this will take index.html from web directory
+
 ## License
 
 Copyright © 2018 [Health Samurai](https://www.health-samurai.io/) team.

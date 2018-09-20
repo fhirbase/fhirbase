@@ -25,6 +25,7 @@
 }
 
 #menu {
+    padding: 5px 0 15px;
 }
 
 #menu h3 {
@@ -36,8 +37,22 @@
 }
 
 #right {
+  padding-top: 5px;
   width: 20%;
   flex-grow: 0;
+}
+
+#right .item {
+  display: block;
+  color: #555;
+  padding: 5px 0px;
+  text-decoration: none;
+  border-bottom: 1px solid #ddd
+}
+
+#right .item:hover{
+  text-decoration: none;
+  background-color: #f1f1f1;
 }
 
 #hint {
@@ -48,6 +63,10 @@
 }
 
 body {
-  padding: 2em;
+  padding: 5px 20px;
 }
 .CodeMirror { height: 100%; }
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #F5F8FA;
+}

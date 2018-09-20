@@ -126,7 +126,12 @@ func WebCommand(c *cli.Context) error {
 	webHost := c.String("webhost")
 	webPort := c.Uint("webport")
 	addr := fmt.Sprintf("%s:%d", webHost, webPort)
-	box := packr.NewBox("./web")
+	var box http.FileSystem
+	if os.Getenv("DEV") == "" {
+		box = packr.NewBox("./web")
+	} else {
+		box = http.Dir("./web")
+	}
 
 	mainConfig := GetPgxConnectionConfig(nil)
 

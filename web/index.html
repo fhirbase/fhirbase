@@ -21,7 +21,7 @@
     <div id="container">
       <div id="left">
         <div id="menu">
-          <h3>FHIRBase UI</h3>
+            <a href="https://www.health-samurai.io/fhirbase"><img src="logo.svg"/></a>
         </div>
 
         <div id="editor">
@@ -44,5 +44,16 @@
       </div>
     </div>
     <script src="app.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125233238-1"></script>
+
+    <script>
+     window.dataLayer = window.dataLayer || [];
+     function gtag(){dataLayer.push(arguments);}
+     gtag('js', new Date());
+     gtag('config', 'UA-125233238-1', {
+         'page_title' : 'fhirbase-demo',
+         'page_path': '/demo'
+     });
+    </script>
   </body>
 </html>

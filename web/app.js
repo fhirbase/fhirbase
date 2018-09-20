@@ -1,6 +1,19 @@
 window.onload = function() {
   var mime = "text/x-pgsql";
 
+  function tag(acc, tg, props){
+    acc.push('<' + tg);
+    var cnt = Array.prototype.slice.call(arguments, 3);
+    for(var k in props){
+      var v = props[k];
+      acc.push(k + '=' + '"' + v + '"');
+    }
+    acc.push('>');
+    Array.prototype.push.apply(acc, cnt);
+    acc.push('</' + tg + '>');
+  }
+
+
   const escapeHtml = unsafe => {
     return unsafe
       .replace(/&/g, "&amp;")
@@ -22,6 +35,16 @@ window.onload = function() {
     let q = cm.getValue();
     let url = new URL("/q", window.location);
     url.searchParams.append("query", q);
+
+    try {
+      gtag('event', 'sql', {
+        'event_category' : 'fhirbase-demo',
+        'event_label' : q
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    document.getElementById("results").innerHTML = '<center>Loading...</center>';
 
     fetch(url)
       .then(response => {
@@ -95,4 +118,37 @@ window.onload = function() {
       }
     }
   });
+
+  var data= {};
+  window.doSelect = (idx) => {
+    var item = data.queries[idx];
+    item && item.query && window.editor.setValue(item.query);
+  };
+
+  window.doExec = (idx) => {
+    var item = data.queries[idx];
+    item && item.query && window.editor.setValue(item.query);
+    runQuery(window.editor);
+  };
+
+
+  fetch("https://raw.githubusercontent.com/fhirbase/fhirbase-tutorials/master/default.json")
+    .then(response => {
+      return response
+        .json()
+        .then(json => Promise.resolve({status: response.status, data: json}));
+    })
+    .then(resp => {
+      var res = [];
+      data = resp.data;
+      tag(res, 'h3', {}, data.title);
+      data.queries.forEach((x,i) => {
+        tag(res, 'a', {class: 'item',
+                       href: 'javascript:void(0)',
+                       title: x.query,
+                       onClick: 'doSelect(' + i + ')',
+                       ondblclick: 'doExec(' + i +')'}, x.title || x.query);
+      });
+      document.getElementById("right").innerHTML = res.join(" ");
+    });
 };
