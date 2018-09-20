@@ -13,7 +13,7 @@ and mantain [Resources
 History](https://www.hl7.org/fhir/http.html#history).
 
 <p align="center">
-    <img src="https://rawgit.com/fhirbase/fhirbase/master/demo/asciicast.svg" />
+    <img src="https://cdn.rawgit.com/fhirbase/fhirbase/a6aff815/demo/asciicast.svg" />
 </p>
 
 ## Installing PostgreSQL
