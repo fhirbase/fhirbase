@@ -46,7 +46,7 @@ distribution's package manager. On Ubuntu or Debian, it's as easy as
 For other Linux distributions, please use search functionality of your
 package manager or just Google the right command.
 
-### MacOS
+### MacOS (Homebrew)
 
 You can install PostgreSQL with [Homebrew](https://brew.sh/):
 
@@ -59,9 +59,22 @@ to use "postgres" as password for simplicity):
     Enter password for new role: postgres
     Enter it again: postgres
 
+### MacOS (Postgres.app)
+
 As an alternative, there is a [Postgres.app](https://postgresapp.com/)
 project which provides PostgreSQL as a regular MacOS application with
-common drag-and-drop installation.
+ common drag-and-drop installation. Please follow instructions at
+[Postgres.app Installation Page]
+(https://postgresapp.com/documentation/install.html) and especially
+make sure you've updated you PATH variable to be able to use `psql`
+command-line tool.
+
+When you finished installing it, open Terminal and execute following
+command to set password for `postgres` user:
+
+    $ psql -h localhost -U postgres -c '\password postgres'
+    Enter new password: postgres
+    Enter it again: postgres
 
 ## Checking Postgres connection
 
