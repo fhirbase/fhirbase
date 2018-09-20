@@ -12,7 +12,7 @@ operations](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete)
 and mantain [Resources
 History](https://www.hl7.org/fhir/http.html#history).
 
-![Fhirbase AsciiCast](./demo/asciicast.svg)
+![Fhirbase AsciiCast](https://rawgit.com/fhirbase/fhirbase/master/demo/asciicast.svg)
 
 ## Installing PostgreSQL
 
