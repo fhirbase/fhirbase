@@ -12,7 +12,7 @@ operations](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete)
 and mantain [Resources
 History](https://www.hl7.org/fhir/http.html#history).
 
-![Fhirbase AsciiCast](./demo/asciicast.svg)
+![Fhirbase AsciiCast](https://rawgit.com/fhirbase/fhirbase/master/demo/asciicast.svg)
 
 ## Installing PostgreSQL
 
@@ -20,6 +20,13 @@ To start using Fhirbase you have to install [PostgreSQL
 database](https://www.postgresql.org/) first. Any version above
 **9.6** should be fine.  Please proceed to the section describing
 operating system you're running.
+
+### Docker (cross-platform)
+
+If you have [Docker](https://www.docker.com/) installed, you might
+want to start PostgreSQL as a Docker container:
+
+    $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=postgres -d postgres:latest
 
 ### Windows
 
@@ -39,22 +46,35 @@ distribution's package manager. On Ubuntu or Debian, it's as easy as
 For other Linux distributions, please use search functionality of your
 package manager or just Google the right command.
 
-### MacOS
+### MacOS (Homebrew)
 
 You can install PostgreSQL with [Homebrew](https://brew.sh/):
 
     $ brew install postgresql
 
+Also you'll need to create default user with some password (we advice
+to use "postgres" as password for simplicity):
+
+    $ createuser -s -P postgres
+    Enter password for new role: postgres
+    Enter it again: postgres
+
+### MacOS (Postgres.app)
+
 As an alternative, there is a [Postgres.app](https://postgresapp.com/)
 project which provides PostgreSQL as a regular MacOS application with
-common drag-and-drop installation.
+ common drag-and-drop installation. Please follow instructions at
+[Postgres.app Installation Page]
+(https://postgresapp.com/documentation/install.html) and especially
+make sure you've updated you PATH variable to be able to use `psql`
+command-line tool.
 
-### Docker (cross-platform)
+When you finished installing it, open Terminal and execute following
+command to set password for `postgres` user:
 
-If you have [Docker](https://www.docker.com/) installed, you might
-want to start PostgreSQL as a Docker container:
-
-    $ docker run --name fhirbase-postgres -p=5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres:latest
+    $ psql -h localhost -U postgres -c '\password postgres'
+    Enter new password: postgres
+    Enter it again: postgres
 
 ## Checking Postgres connection
 
