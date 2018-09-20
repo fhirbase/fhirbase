@@ -12,7 +12,9 @@ operations](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete)
 and mantain [Resources
 History](https://www.hl7.org/fhir/http.html#history).
 
-![Fhirbase AsciiCast](https://rawgit.com/fhirbase/fhirbase/master/demo/asciicast.svg)
+<p align="center">
+    <img src="https://rawgit.com/fhirbase/fhirbase/master/demo/asciicast.svg" />
+</p>
 
 ## Installing PostgreSQL
 
@@ -276,13 +278,12 @@ invoking `make` command.
 NB you can put Fhirbase source code outside of `GOPATH` env variable
 because Makefile sets `GOPATH` value to `fhirbase-root/.gopath`.
 
-To develop demo run 
+To enable hot reload of demo's static assets set `DEV` env variable
+like this:
 
 ```
 env DEV=1 fhirbase web
 ```
-
-this will take index.html from web directory
 
 ## License
 
