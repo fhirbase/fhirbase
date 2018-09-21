@@ -66,8 +66,8 @@ to use "postgres" as password for simplicity):
 As an alternative, there is a [Postgres.app](https://postgresapp.com/)
 project which provides PostgreSQL as a regular MacOS application with
  common drag-and-drop installation. Please follow instructions at
-[Postgres.app Installation Page]
-(https://postgresapp.com/documentation/install.html) and especially
+[Postgres.app Installation Page](
+https://postgresapp.com/documentation/install.html) and especially
 make sure you've updated you PATH variable to be able to use `psql`
 command-line tool.
 
@@ -126,9 +126,18 @@ should match your operating system and CPU architecture. Nightly-build
 release is being updated after every commit to master branch, so it
 might be unstable.
 
-When you downloaded Fhirbase binary, rename it from `fhirbase-os-arch`
-for to just `fhirbase` and put in some directory listed in you `$PATH`
-environment variable.
+When you downloaded the Fhirbase binary, make it executable (Windows
+users don't need this):
+
+    $ chmod a+x /path/to/downloads/folder/fhirbase-os-arch
+
+Then rename it from `fhirbase-os-arch` to just `fhirbase` and put in
+some directory listed in you `$PATH` environment variable. To check
+that it was properly installed, type following command:
+
+    $ fhirbase help
+
+It should output Fhirbase command-line help.
 
 If you don't know what the `$PATH` variable is, it's ok, you can skip
 this step. But you'll have to type full path to the `fhirbase`
@@ -282,7 +291,7 @@ To enable hot reload of demo's static assets set `DEV` env variable
 like this:
 
 ```
-env DEV=1 fhirbase web
+DEV=1 fhirbase web
 ```
 
 ## License
