@@ -94,12 +94,11 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:46cec24aa06289d48ea33f2b788c57de589a66ed5cbb320d39a1590462e65ec8"
+  digest = "1:c780324db3f98be469be071899ad622f88a09c96861d912b178b7a439d2ebdf1"
   name = "github.com/urfave/cli"
   packages = ["."]
   pruneopts = "U"
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
+  revision = "934abfb2f102315b5794e15ebc7949e4ca253920"
 
 [[projects]]
   digest = "1:d07540782ba788f5371bbeb290d969b7477df839b7640f7f8cebe21aedc99523"

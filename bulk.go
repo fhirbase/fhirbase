@@ -190,6 +190,7 @@ func startDlWorker(n uint, bars *mpb.Progress, jobs chan string, results chan in
 
 	go func() {
 		defer wg.Done()
+		client := &http.Client{}
 
 		for url := range jobs {
 			parsedURL, err := urlPkg.Parse(url)
@@ -208,7 +209,9 @@ func startDlWorker(n uint, bars *mpb.Progress, jobs chan string, results chan in
 				continue
 			}
 
-			resp, err := http.Get(url)
+			req, err := http.NewRequest("GET", url, nil)
+			req.Header.Add("Accept-Encoding", "gzip")
+			resp, err := client.Do(req)
 
 			if err != nil {
 				results <- errors.Wrap(err, "cannot perform HTTP request")
@@ -220,6 +223,7 @@ func startDlWorker(n uint, bars *mpb.Progress, jobs chan string, results chan in
 			}
 
 			contentLengthHeader := resp.Header.Get("Content-Length")
+
 			size, err := strconv.ParseInt(contentLengthHeader, 10, 64)
 
 			counterDecorator := decor.CountersKibiByte("%6.1f / %6.1f", decor.WCSyncWidth)

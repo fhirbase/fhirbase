@@ -24,6 +24,15 @@ import (
 	"github.com/vbauerster/mpb/decor"
 )
 
+type bundleType int
+
+const (
+	ndjsonBundleType bundleType = iota
+	fhirBundleType
+	singleResourceBundleType
+	unknownBundleType
+)
+
 type bundle interface {
 	Next() (map[string]interface{}, error)
 	Close()
@@ -44,6 +53,89 @@ type copyFromBundleSource struct {
 	currentRt   string
 	prevTime    time.Time
 	fhirVersion string
+}
+
+func isCompleteJSONObject(s string) bool {
+	numBraces := 0
+	inString := false
+	escaped := false
+
+	for _, b := range s {
+		if !escaped {
+			if !inString {
+				if b == '{' {
+					numBraces = numBraces + 1
+				} else if b == '}' {
+					numBraces = numBraces - 1
+				} else if b == '"' {
+					inString = true
+				}
+			} else {
+				if b == '"' {
+					inString = false
+				} else if b == '\\' {
+					escaped = true
+				}
+			}
+		} else {
+			escaped = false
+		}
+	}
+
+	return numBraces == 0
+}
+
+func guessJSONBundleType(r io.Reader) (bundleType, error) {
+	iter := jsoniter.Parse(jsoniter.ConfigFastest, r, 32*1024)
+
+	if iter.WhatIsNext() != jsoniter.ObjectValue {
+		return unknownBundleType, fmt.Errorf("Expecting to get JSON object at the root of the resource")
+	}
+
+	for k := iter.ReadObject(); k != ""; k = iter.ReadObject() {
+		if k == "resourceType" {
+			rt := iter.ReadString()
+
+			if rt == "Bundle" {
+				return fhirBundleType, nil
+			} else if rt != "" {
+				return singleResourceBundleType, nil
+			}
+
+			return unknownBundleType, nil
+		}
+
+		iter.Skip()
+	}
+
+	return fhirBundleType, nil
+}
+
+func guessBundleType(f io.Reader) (bundleType, error) {
+	rdr := bufio.NewReader(f)
+	firstLine, err := rdr.ReadString('\n')
+
+	if err != nil {
+		if err == io.EOF {
+			// only one line is available
+			return guessJSONBundleType(strings.NewReader(firstLine))
+		}
+
+		return unknownBundleType, err
+	}
+
+	secondLine, err := rdr.ReadString('\n')
+
+	if err != nil && err != io.EOF {
+		return unknownBundleType, err
+	}
+
+	if isCompleteJSONObject(firstLine) && isCompleteJSONObject(secondLine) {
+		return ndjsonBundleType, nil
+	}
+
+	return guessJSONBundleType(io.MultiReader(strings.NewReader(firstLine),
+		strings.NewReader(secondLine), rdr))
 }
 
 func newCopyFromBundleSource(bndl bundle, fhirVersion string, cb loaderCb) *copyFromBundleSource {
@@ -146,6 +238,95 @@ type multilineBundle struct {
 	curline  int
 }
 
+type fhirBundle struct {
+	count    int
+	fileName string
+	file     *os.File
+	curline  int
+	iter     *jsoniter.Iterator
+}
+
+func (b *fhirBundle) Close() {
+	b.file.Close()
+}
+
+func (b *fhirBundle) Count() int {
+	return b.count
+}
+
+func (b *fhirBundle) Next() (map[string]interface{}, error) {
+	if !b.iter.ReadArray() {
+		return nil, io.EOF
+	}
+
+	entry := b.iter.Read()
+
+	if entry == nil {
+		return nil, b.iter.Error
+	}
+
+	entryMap, ok := entry.(map[string]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("got non-object value in the entries array")
+	}
+
+	res, ok := entryMap["resource"]
+
+	if !ok {
+		return nil, fmt.Errorf("cannot get entry.resource attribute")
+	}
+
+	resMap, ok := res.(map[string]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("got non-object value at entry.resource")
+	}
+
+	fmt.Printf("%v\n\n", resMap)
+
+	return resMap, nil
+}
+
+func newFhirBundle(fileName string) (*fhirBundle, error) {
+	var result fhirBundle
+	result.fileName = fileName
+
+	file, err := os.Open(fileName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result.file = file
+	result.iter = jsoniter.Parse(jsoniter.ConfigFastest, result.file, 32*1024)
+
+	err = goToEntriesInFhirBundle(result.iter)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot find `entry` key in the bundle")
+	}
+
+	linesCount, err := countEntriesInBundle(result.iter)
+
+	result.file.Seek(0, 0)
+	result.iter.Reset(result.file)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot reset fhir bundle iterator")
+	}
+
+	err = goToEntriesInFhirBundle(result.iter)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot find `entry` key in the bundle")
+	}
+
+	result.count = linesCount
+
+	return &result, nil
+}
+
 func (b *multilineBundle) Close() {
 	defer b.file.Close()
 
@@ -233,7 +414,7 @@ func newMultifileBundle(fileNames []string) (*multifileBundle, error) {
 	result.currentBndlIdx = -1
 
 	for _, fileName := range result.fileNames {
-		bndl, err := newMultilineBundle(fileName)
+		bndl, err := newFhirBundle(fileName)
 
 		if err != nil {
 			return nil, err
@@ -266,11 +447,11 @@ func (b *multifileBundle) Next() (map[string]interface{}, error) {
 			return nil, io.EOF
 		}
 
-		currentBndl, err := newMultilineBundle(b.fileNames[b.currentBndlIdx])
+		currentBndl, err := newFhirBundle(b.fileNames[b.currentBndlIdx])
 
 		if err != nil {
 			b.currentBndlIdx = b.currentBndlIdx + 1
-			return nil, err
+			return nil, errors.Wrap(err, "cannot create bundle")
 		}
 
 		b.currentBndl = currentBndl
@@ -284,7 +465,7 @@ func (b *multifileBundle) Next() (map[string]interface{}, error) {
 			b.currentBndl = nil
 			return b.Next()
 		}
-		return nil, err
+		return nil, errors.Wrap(err, "cannot read next entry from bundle")
 	}
 
 	return res, nil
@@ -323,6 +504,37 @@ func countLinesInReader(r io.Reader) (int, error) {
 			return count, err
 		}
 	}
+}
+
+func goToEntriesInFhirBundle(iter *jsoniter.Iterator) error {
+	if iter.WhatIsNext() != jsoniter.ObjectValue {
+		return fmt.Errorf("Expecting to get JSON object at the root of the FHIR Bundle")
+	}
+
+	curAttr := iter.ReadObject()
+
+	for curAttr != "" {
+		if curAttr == "entry" && iter.WhatIsNext() == jsoniter.ArrayValue {
+			return nil
+		}
+
+		iter.Skip()
+
+		curAttr = iter.ReadObject()
+	}
+
+	return io.EOF
+}
+
+func countEntriesInBundle(iter *jsoniter.Iterator) (int, error) {
+	count := 0
+
+	for iter.ReadArray() {
+		count = count + 1
+		iter.Skip()
+	}
+
+	return count, nil
 }
 
 type copyLoader struct {
@@ -379,7 +591,6 @@ func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 			}
 
 			if curResource%batchSize == 0 || curResource == totalCount-1 {
-				// PrintMemUsage()
 				batch.Send(context.Background(), nil)
 				batch.Close()
 
@@ -400,7 +611,7 @@ func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 	return nil
 }
 
-func loadFiles(files []string, ldr loader, memUsage bool) error {
+func loadNdjsonFiles(files []string, ldr loader, memUsage bool) error {
 	db := GetConnection(nil)
 	defer db.Close()
 
@@ -508,8 +719,8 @@ func LoadCommand(c *cli.Context) error {
 			f.Close()
 		}
 
-		return loadFiles(files, ldr, memUsage)
+		return loadNdjsonFiles(files, ldr, memUsage)
 	}
 
-	return loadFiles(c.Args(), ldr, memUsage)
+	return loadNdjsonFiles(c.Args(), ldr, memUsage)
 }

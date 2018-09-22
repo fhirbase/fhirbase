@@ -16,7 +16,7 @@
 
 [[constraint]]
   name = "github.com/urfave/cli"
-  version = "1.20.0"
+  revision = "934abfb2f102315b5794e15ebc7949e4ca253920"
 
 [prune]
   unused-packages = true
