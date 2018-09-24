@@ -14,7 +14,7 @@ var fileTypeCases = map[string]bundleType{
 	"{\"foo\": \"{{\\\"}bar\", \"resourceType\": \"Patient\"}":         singleResourceBundleType,
 }
 
-func TestGuessFileType(t *testing.T) {
+func TestGuessBundleType(t *testing.T) {
 	i := 0
 	for str, tpe := range fileTypeCases {
 		i++
