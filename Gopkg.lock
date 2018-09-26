@@ -10,6 +10,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:6a5d9b0cfaf57fdf23b4b2fdd13e14712fcde8459e45f77ddf36f64ae7a796d2"
+  name = "github.com/denisbrodbeck/machineid"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "e2e48f90c87f1f77286682531a46ff99e95d8089"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:f2fbbf8d6fd34fdce515cc7484e7580c13cfae2df20b17bd131469782136f019"
   name = "github.com/gobuffalo/packr"
   packages = ["."]
@@ -123,11 +131,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a82fc3205554c66e745aefab081509a4c862a1889af76c1dff0fcbb63b6b35c9"
+  digest = "1:76be8a0a7c27ec301b4fcac23b44e95eff3a9041abe4222719fc1970d7ebad10"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
+    "windows/registry",
   ]
   pruneopts = "U"
   revision = "ebe1bf3edb3325c393447059974de898d5133eb8"
@@ -136,6 +145,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/denisbrodbeck/machineid",
     "github.com/gobuffalo/packr",
     "github.com/google/go-cmp/cmp",
     "github.com/jackc/pgx",

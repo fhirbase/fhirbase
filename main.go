@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -174,13 +173,15 @@ func main() {
 	}
 
 	app.ExitErrHandler = func(context *cli.Context, err error) {
-		fmt.Printf("%+v\n", err)
-		os.Exit(1)
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	err := app.Run(os.Args)
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("%+v\n", err)
 	}
 }
