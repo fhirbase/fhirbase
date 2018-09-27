@@ -185,13 +185,14 @@ With 'insert' mode Fhirbase uses INSERT statement to load resource
 into the database. For the matter of speed Fhirbase buffers statements
 and send them in batches of 2000.
 
-Insert mode is intended for the cases when you. In other words, if while reading
-next resource Fhirbase always gets different resource type (different
-from previously read resource), then you want to use insert mode.
+Insert mode is intended for the cases when resources in your source
+files are not sorted by resource type. In other words, if Fhirbase
+always gets resources of a different types (different from previously
+read resource), then you want to use insert mode.
 
 Also insert mode is useful when you have duplicate IDs in your source
-files (rare case but we seen some). Insert mode can ignore such
-duplicates.
+files (case is rare but happened several times). Insert mode can
+ignore such duplicates.
 `,
 			Action: LoadCommand,
 			Flags: []cli.Flag{
