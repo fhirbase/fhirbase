@@ -661,7 +661,7 @@ func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 	return nil
 }
 
-func loadNdjsonFiles(files []string, ldr loader, memUsage bool) error {
+func loadFIles(files []string, ldr loader, memUsage bool) error {
 	db := GetConnection(nil)
 	defer db.Close()
 
@@ -769,8 +769,8 @@ func LoadCommand(c *cli.Context) error {
 			f.Close()
 		}
 
-		return loadNdjsonFiles(files, ldr, memUsage)
+		return loadFIles(files, ldr, memUsage)
 	}
 
-	return loadNdjsonFiles(c.Args(), ldr, memUsage)
+	return loadFIles(c.Args(), ldr, memUsage)
 }
