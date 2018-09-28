@@ -727,9 +727,21 @@ func LoadCommand(c *cli.Context) error {
 		return nil
 	}
 
+	var bulkLoad bool
+
+	if strings.HasPrefix(c.Args().Get(0), "http") {
+		bulkLoad = true
+	} else {
+		bulkLoad = false
+	}
+
 	fhirVersion := c.GlobalString("fhir")
 	mode := c.String("mode")
 	var ldr loader
+
+	if bulkLoad && !c.IsSet("mode") {
+		mode = "copy"
+	}
 
 	if mode != "copy" && mode != "insert" {
 		return fmt.Errorf("invalid value for --mode flag. Possible values are either 'copy' or 'insert'")
@@ -747,7 +759,7 @@ func LoadCommand(c *cli.Context) error {
 
 	memUsage := c.Bool("memusage")
 
-	if strings.HasPrefix(c.Args().Get(0), "http") {
+	if bulkLoad {
 		numWorkers := c.Uint("numdl")
 		acceptHdr := c.String("accept-header")
 		fileHndlrs, err := getBulkData(c.Args().Get(0), numWorkers, acceptHdr)

@@ -149,12 +149,12 @@ set it to something it expects.
 Load command loads FHIR resources from named source(s) into the
 Fhirbase database.
 
-You can provide either single Bulk Data URL or several file paths as a
-load source.
+You can provide either single Bulk Data URL or several file paths as
+an input.
 
-Fhirbase can read from following files:
+Fhirbase can read from following file types:
 
-  * NDJSON files (one FHIR resource per line)
+  * NDJSON files
   * transaction or collection FHIR Bundles
   * regular JSON files containing single FHIR resource
 
@@ -162,38 +162,48 @@ Also Fhirbase can read gziped files, so all of the supported file
 formats can be additionally gziped.
 
 You are allowed to mix different file formats and gziped/non-gziped
-files in a single command invocation, i.e.:
+files in a single command input, i.e.:
 
-  fhirbase load *.ndjson.gzip patient-1.json transaction.json
+  fhirbase load *.ndjson.gzip patient-john-doe.json my-tx-bundle.json
 
-Fhirbase automatically detects presence of gzip compression and format
-of the input file, so you don't have to provide any additional
-hints. Even file name extensions can be ommited, because Fhirbase
-analyzes file content, not the file name.
+Fhirbase automatically detects gzip compression and format of the
+input file, so you don't have to provide any additional hints. Even
+file name extensions can be ommited, because Fhirbase analyzes file
+content, not the file name.
 
 If Bulk Data URL was provided, Fhirbase will download NDJSON files
 first (see the help for "bulkget" command) and then load them as a
 regular local files. Load command accepts all the command-line flags
 accepted by bulkget command.
 
-During load process Fhirbase sequentially reads one resource at a time
-and puts it into the database until all of the provided files are
-read. You can choose the method how resources are being loaded with
-"--mode" flag. There are two modes: 'insert' and 'copy'.
+Fhirbase reads input files sequentially, reading single resource at a
+time. And because of PostgreSQL traits it's important if Fhirbase gets
+a long enough series of resources of the same type from the provided
+input, or it gets resource of a different type on every next read. We
+will call those two types of inputs "grouped" and "non-grouped",
+respectively. Good example of grouped input is NDJSON files produced
+by Bulk Data API server. A set of JSON files from FHIR distribution's
+"examples" directory is an example of non-grouped input. Because
+Fhirbase reads resources one by one and do not load the whole file, it
+cannot know if you provided grouped or non-grouped input.
 
-With 'insert' mode Fhirbase uses INSERT statement to load resource
-into the database. For the matter of speed Fhirbase buffers statements
-and send them in batches of 2000.
+Fhirbase supports two modes (or methods) to put resources into the
+database: "insert" and "copy". Insert mode uses INSERT statements and
+copy mode uses COPY FROM STDIN. By default, Fhirbase uses insert mode
+for local files and copy mode for Bulk Data API loads.
 
-Insert mode is intended for the cases when resources in your source
-files are not sorted by resource type. In other words, if Fhirbase
-always gets resources of a different types (different from previously
-read resource), then you want to use insert mode.
+It does not matter for insert mode if your input is grouped or not. It
+will perform with same speed on both. Use it when you're not sure what
+type of input you have. Also insert mode is useful when you have
+duplicate IDs in your source files (rare case but happened couple of
+times). Insert mode will ignore duplicates and will persist only the
+first occurence of a specific resource instance, ignoring other
+occurences.
 
-Also insert mode is useful when you have duplicate IDs in your source
-files (case is rare but happened several times). Insert mode can
-ignore such duplicates.
-`,
+Copy mode is intended to be used only with grouped inputs. When
+applied to grouped inputs, it's almost 3 times faster than insert
+mode. But it's same slower if it's being applied to non-grouped
+input.`,
 			Action: LoadCommand,
 			Flags: []cli.Flag{
 				cli.StringFlag{
