@@ -30,4 +30,4 @@ before_install:
   - go get github.com/tcnksm/ghr
 
 after_success:
-  - ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN -b "Binaries are built for commit $TRAVIS_COMMIT by Travis CI build #$TRAVIS_BUILD_NUMBER" --prerelease -replace --debug nightly-build bin/
+  - ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN -b "Binaries are built for commit $TRAVIS_COMMIT by Travis CI build \#$TRAVIS_BUILD_NUMBER" --prerelease -replace --debug nightly-build bin/
