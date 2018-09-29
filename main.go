@@ -121,7 +121,7 @@ parallel and you can specify number of threads with "--numdl" flag.
 
 To mitigate differences between Bulk Data API implementations, there
 is an "--accept-header" option which sets the value for "Accept"
-header. Must likely you won't neeed to set it, but if Bulk Data server
+header. Most likely you won't need to set it, but if Bulk Data server
 rejects queries because of "Accept" header value, consider explicitly
 set it to something it expects.
 `,
@@ -197,8 +197,8 @@ will perform with same speed on both. Use it when you're not sure what
 type of input you have. Also insert mode is useful when you have
 duplicate IDs in your source files (rare case but happened couple of
 times). Insert mode will ignore duplicates and will persist only the
-first occurence of a specific resource instance, ignoring other
-occurences.
+first occurrence of a specific resource instance, ignoring other
+occurrences.
 
 Copy mode is intended to be used only with grouped inputs. When
 applied to grouped inputs, it's almost 3 times faster than insert
