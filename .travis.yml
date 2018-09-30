@@ -5,7 +5,6 @@ go:
 cache:
   directories:
   - .gopath
-  - vendor
 
 sudo: required
 
