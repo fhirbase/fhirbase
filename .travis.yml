@@ -27,7 +27,7 @@ script:
 
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-  - go get github.com/tcnksm/ghr
+  - curl https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz --output ghr.tar.gz && tar zxvf ghr.tar.gz && ls -lah *
 
 after_success:
-  - ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN --prerelease -replace --debug nightly-build bin/
+  - ./ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN --prerelease -replace --debug nightly-build bin/
