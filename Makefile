@@ -19,7 +19,7 @@ all: vendor a_main-packr.go lint fmt | $(BASE) ; $(info $(M) building executable
 	$Q cd $(BASE) && $(GO) build \
 	-v \
 	-tags release \
-	-ldflags '-X $(PACKAGE)/cmd.Version=$(VERSION) -X $(PACKAGE)/cmd.BuildDate=$(DATE)' \
+	-ldflags '-X main.Version=$(VERSION) -X main.BuildDate=$(DATE)' \
 	-o bin/$(PACKAGE)$(BINSUFFIX) *.go
 
 a_main-packr.go: $(GOPATH)/bin/packr

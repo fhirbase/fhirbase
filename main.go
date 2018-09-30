@@ -15,6 +15,15 @@ var AvailableSchemas = []string{
 	"3.2.0", "3.3.0", "dev",
 }
 
+var Version = "unknown"
+var BuildDate = "unknown"
+
+func versionCommand(c *cli.Context) error {
+	fmt.Printf("%s built at %s\n", Version, BuildDate)
+
+	return nil
+}
+
 const logo = ` (        )  (    (                   (
  )\ )  ( /(  )\ ) )\ )   (     (      )\ )
 (()/(  )\())(()/((()/( ( )\    )\    (()/( (
@@ -22,7 +31,7 @@ const logo = ` (        )  (    (                   (
 (_))_| _((_)(_)) (_)) ((_)_  )\ _ )\ (_)) ((_)
 | |_  | || ||_ _|| _ \ | _ ) (_)_\(_)/ __|| __|
 | __| | __ | | | |   / | _ \  / _ \  \__ \| _|
-|_|   |_||_||___||_|_\ |___/ /_/ \_\ |___/|___|        v1.0`
+|_|   |_||_||___||_|_\ |___/ /_/ \_\ |___/|___|`
 
 func main() {
 	cli.AppHelpTemplate = fmt.Sprintf("%s\n\n%s", logo, cli.AppHelpTemplate)
@@ -252,6 +261,16 @@ then web server will listen on all available network interfaces.`,
 					Usage: "Host to start webserver on",
 				},
 			},
+		},
+		{
+			Name:      "version",
+			HelpName:  "version",
+			Hidden:    false,
+			Usage:     "Displays Fhirbase version and build date",
+			ArgsUsage: "",
+			Description: `
+Version command displays Fhirbase version and build date`,
+			Action: versionCommand,
 		},
 	}
 
