@@ -13,6 +13,25 @@ import (
 	"github.com/vbauerster/mpb/decor"
 )
 
+var conceptsTables = []string{
+	`CREATE TABLE IF NOT EXISTS "concept" (
+id text primary key,
+txid bigint not null,
+ts timestamptz DEFAULT current_timestamp,
+resource_type text default 'Concept',
+status resource_status not null,
+resource jsonb not null);`,
+
+	`CREATE TABLE IF NOT EXISTS "concept_history" (
+id text,
+txid bigint not null,
+ts timestamptz DEFAULT current_timestamp,
+resource_type text default 'Concept',
+status resource_status not null,
+resource jsonb not null,
+PRIMARY KEY (id, txid)
+);`}
+
 type initProgressCb func(curIdx int, total int64, duration time.Duration)
 
 // PerformInit actually performs init operation
@@ -46,6 +65,7 @@ func PerformInit(db *pgx.Conn, fhirVersion string, cb initProgressCb) error {
 	}
 
 	allStmts := append(schemaStatements, functionStatements...)
+	allStmts = append(allStmts, conceptsTables...)
 
 	t := time.Now()
 	for i, stmt := range allStmts {
