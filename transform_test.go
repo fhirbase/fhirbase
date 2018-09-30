@@ -40,14 +40,28 @@ var cases = [][]string{
 		`{
 "resourceType":"CarePlan",
 "careTeam":[
-  {"reference":{"id":"1","type":"Practitioner","display":"John"}},
-  {"reference":{"id":"2","type":"Practitioner","display":"Ian"}}
+  {"id":"1","type":"Practitioner","display":"John"},
+  {"id":"2","type":"Practitioner","display":"Ian"}
 ],
 "identifier":[
   {"system":"foo","value":"bar"},
-  {"system":"foo","value":"baz","assigner":{"reference":{"id":"42","type":"Practitioner","display":"John Doe"}}}
+  {"system":"foo","value":"baz","assigner":{"id":"42","type":"Practitioner","display":"John Doe"}}
 ]}`,
-	}, []string{
+	},
+	[]string{
+		`
+{
+"resourceType":"Claim",
+"information": [
+  {"valueReference": {"reference": "Immunization/123"}}
+]}`,
+		`{
+"resourceType":"Claim",
+"information": [
+  {"value": {"Reference": { "type": "Immunization", "id": "123" }}}
+]}`,
+	},
+	[]string{
 		`{
   "resourceType":"Patient",
   "name": [{"given": ["Mike"], "family": "Lapshin"}],
@@ -55,7 +69,7 @@ var cases = [][]string{
   "multipleBirthInteger": 2,
   "managingOrganization": { "reference": "Organization/1", "display": "ACME corp"}
 }`, `{
-  "managingOrganization":{"reference":{"id":"1","type":"Organization","display":"ACME corp"}},
+  "managingOrganization":{"id":"1","type":"Organization","display":"ACME corp"},
   "resourceType":"Patient",
   "deceased": { "boolean": true },
   "multipleBirth": { "integer": 2 },
@@ -63,7 +77,7 @@ var cases = [][]string{
 }`,
 	}, []string{
 		`{"resourceType":"Patient", "managingOrganization": { "display": "ACME corp"}}`,
-		`{"resourceType":"Patient", "managingOrganization":{"reference":{"display":"ACME corp"}}}`,
+		`{"resourceType":"Patient", "managingOrganization":{"display":"ACME corp"}}`,
 	},
 }
 
@@ -73,7 +87,7 @@ func TestTransform(t *testing.T) {
 			in := parseJson(c[0])
 			out := parseJson(c[1])
 
-			result, err := doTransform(in, "3.3.0")
+			result, err := doTransform(in, "3.0.1")
 
 			if err != nil {
 				t.Error(err)

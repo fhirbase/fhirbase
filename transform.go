@@ -44,8 +44,13 @@ func transform(node interface{}, trNode map[string]interface{}, tr map[string]in
 			transformed := make(map[string]interface{})
 
 			if tr[ttype] != nil {
-				r, _ := transform(node, tr[ttype].(map[string]interface{}), tr)
-				transformed[ttype] = r
+				if ttype == "Reference" {
+					r, _ := transform(node, map[string]interface{}{"tr/act": "reference"}, tr)
+					transformed[ttype] = r
+				} else {
+					r, _ := transform(node, tr[ttype].(map[string]interface{}), tr)
+					transformed[ttype] = r
+				}
 			} else {
 				transformed[ttype] = node
 			}
@@ -54,7 +59,6 @@ func transform(node interface{}, trNode map[string]interface{}, tr map[string]in
 		} else if trAct == "reference" {
 			v := node.(map[string]interface{})
 
-			transformed := make(map[string]interface{})
 			newref := make(map[string]interface{})
 
 			if v["reference"] != nil {
@@ -73,8 +77,7 @@ func transform(node interface{}, trNode map[string]interface{}, tr map[string]in
 				newref["display"] = v["display"].(string)
 			}
 
-			transformed["reference"] = newref
-			res = transformed
+			res = newref
 		}
 
 		return res, nil
