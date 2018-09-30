@@ -69,7 +69,7 @@ func updateNightlyBuild() error {
 		return nil
 	}
 
-	fmt.Printf("TODO: not implemented yet")
+	fmt.Printf("TODO: not implemented yet\n")
 
 	return nil
 }
