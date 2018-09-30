@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"text/tabwriter"
@@ -433,12 +434,15 @@ func newMultifileBundle(fileNames []string) (*multifileBundle, error) {
 
 		if err != nil {
 			fmt.Printf("Cannot open %s: %v\n", fileName, err)
+			continue
 		}
 
 		bndlType, err := guessBundleType(f)
 
 		if err != nil {
 			fmt.Printf("Cannot determine type of %s: %v\n", fileName, err)
+			f.Close()
+			continue
 		}
 
 		f.Rewind()
@@ -661,6 +665,35 @@ func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 	return nil
 }
 
+func prewalkDirs(fileNames []string) ([]string, error) {
+	result := make([]string, 0)
+
+	for _, fn := range fileNames {
+		fi, err := os.Stat(fn)
+
+		switch {
+		case err != nil:
+			return nil, err
+		case fi.IsDir():
+			err = filepath.Walk(fn, func(path string, info os.FileInfo, err error) error {
+				if err == nil && !info.IsDir() {
+					result = append(result, path)
+				}
+
+				return err
+			})
+
+			if err != nil {
+				return nil, err
+			}
+		default:
+			result = append(result, fn)
+		}
+	}
+
+	return result, nil
+}
+
 func loadFIles(files []string, ldr loader, memUsage bool) error {
 	db := GetConnection(nil)
 	defer db.Close()
@@ -784,5 +817,13 @@ func LoadCommand(c *cli.Context) error {
 		return loadFIles(files, ldr, memUsage)
 	}
 
-	return loadFIles(c.Args(), ldr, memUsage)
+	files, err := prewalkDirs(c.Args())
+
+	fmt.Printf("%v\n", files)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot prewalk directories")
+	}
+
+	return loadFIles(files, ldr, memUsage)
 }
