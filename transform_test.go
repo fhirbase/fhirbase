@@ -79,6 +79,10 @@ var cases = [][]string{
 		`{"resourceType":"Patient", "managingOrganization": { "display": "ACME corp"}}`,
 		`{"resourceType":"Patient", "managingOrganization":{"display":"ACME corp"}}`,
 	},
+	[]string{
+		`{"resourceType":"FoobarUnknown", "foo": 42}`,
+		`{"resourceType":"FoobarUnknown", "foo": 42}`,
+	},
 }
 
 func TestTransform(t *testing.T) {

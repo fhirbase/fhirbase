@@ -170,9 +170,16 @@ func doTransform(res map[string]interface{}, fhirVersion string) (map[string]int
 		return nil, fmt.Errorf("cannot determine resourceType for resource %v", res)
 	}
 
-	trNode := tr[rt].(map[string]interface{})
+	trNode := tr[rt]
 
-	out, err := transform(res, trNode, tr)
+	if trNode == nil {
+		// TODO: some warning output here?
+		return res, nil
+	}
+
+	trNodeMap := trNode.(map[string]interface{})
+
+	out, err := transform(res, trNodeMap, tr)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot perform transformation for resource %v", res)
