@@ -46,17 +46,19 @@ func updateStableBuild() error {
 		return nil
 	}
 
-	fmt.Print("Do you want to update Fhirbase to the version", latest.Version, "? (yes/no): ")
+	fmt.Printf("Do you want to update Fhirbase to the version %s? (yes/no): ", latest.Version)
 
 	if !readYesNo() {
 		return nil
 	}
 
+	fmt.Printf("Updating...\n")
+
 	if err := selfupdate.UpdateTo(latest.AssetURL, os.Args[0]); err != nil {
 		return errors.Wrap(err, "Error occurred while updating Fhirbase binary")
 	}
 
-	fmt.Printf("Successfully updated Fhirbase to version %s\n", latest.Version)
+	fmt.Printf("Successfully updated Fhirbase to the version %s.\n", latest.Version)
 
 	return nil
 }
