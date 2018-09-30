@@ -3,7 +3,7 @@ export GOPATH   = $(CURDIR)/.gopath
 BASE     = $(GOPATH)/src/$(PACKAGE)
 DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell cat $(BASE)/.version 2> /dev/null || \
-	git rev-parse --short HEAD 2> /dev/null || \
+	echo "nightly-\c" && git rev-parse --short HEAD 2> /dev/null || \
 	echo v0.0.0)
 
 GO      = go
@@ -20,7 +20,7 @@ all: vendor a_main-packr.go lint fmt | $(BASE) ; $(info $(M) building executable
 	$Q cd $(BASE) && $(GO) build \
 	-v \
 	-tags release \
-	-ldflags '-X main.Version=$(VERSION) -X main.BuildDate=$(DATE)' \
+	-ldflags '-X "main.Version=$(VERSION)" -X "main.BuildDate=$(DATE)"' \
 	-o bin/$(PACKAGE)$(BINSUFFIX) *.go
 
 a_main-packr.go: $(GOPATH)/bin/packr

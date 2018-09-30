@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -15,7 +16,23 @@ import (
 // FhirbaseRepo holds fhirbase GitHub repo name
 const FhirbaseRepo = "fhirbase/fhirbase"
 
-func updateCommand(c *cli.Context) error {
+func readYesNo() bool {
+	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+
+	if err != nil || (input != "y\n" && input != "n\n" && input != "Y\n" && input != "N\n") {
+		fmt.Printf("Invalid input. Only 'y' or 'n' are accepted.\n")
+		return false
+	}
+
+	if input == "y\n" || input == "Y\n" {
+		return true
+	}
+
+	return false
+
+}
+
+func updateStableBuild() error {
 	latest, found, err := selfupdate.DetectLatest(FhirbaseRepo)
 
 	if err != nil {
@@ -29,15 +46,9 @@ func updateCommand(c *cli.Context) error {
 		return nil
 	}
 
-	fmt.Print("Do you want to update Fhirbase to the version", latest.Version, "? (y/n): ")
-	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	fmt.Print("Do you want to update Fhirbase to the version", latest.Version, "? (yes/no): ")
 
-	if err != nil || (input != "y\n" && input != "n\n") {
-		fmt.Printf("Invalid input. Only 'y' or 'n' are accepted.\n")
-		return nil
-	}
-
-	if input == "n\n" {
+	if !readYesNo() {
 		return nil
 	}
 
@@ -48,4 +59,23 @@ func updateCommand(c *cli.Context) error {
 	fmt.Printf("Successfully updated Fhirbase to version %s\n", latest.Version)
 
 	return nil
+}
+
+func updateNightlyBuild() error {
+	fmt.Print("Do you want to update Fhirbase to the latest nightly (unstable) build? (y/n): ")
+	if !readYesNo() {
+		return nil
+	}
+
+	fmt.Printf("TODO: not implemented yet")
+
+	return nil
+}
+
+func updateCommand(c *cli.Context) error {
+	if strings.HasPrefix(Version, "nightly") {
+		return updateNightlyBuild()
+	}
+
+	return updateStableBuild()
 }
