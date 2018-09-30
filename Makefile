@@ -2,8 +2,9 @@ PACKAGE  = fhirbase
 export GOPATH   = $(CURDIR)/.gopath
 BASE     = $(GOPATH)/src/$(PACKAGE)
 DATE    ?= $(shell date +%FT%T%z)
-VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
-	cat $(CURDIR)/.version 2> /dev/null || echo v0)
+VERSION ?= $(shell cat $(BASE)/.version 2> /dev/null || \
+	git rev-parse --short HEAD 2> /dev/null || \
+	echo v0.0.0)
 
 GO      = go
 GODOC   = godoc

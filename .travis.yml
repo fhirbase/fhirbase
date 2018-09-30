@@ -30,10 +30,11 @@ before_install:
   - curl -L https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz --output ghr.tar.gz && tar zxvf ghr.tar.gz
 
 after_success:
+  - "[ ! -z \"$TRAVIS_TAG\" ] && echo \"$TRAVIS_TAG\" > .version"
   - ghr_v0.12.0_linux_amd64/ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN --prerelease -replace --debug nightly-build bin/
 
 deploy:
   provider: script
-  script: echo "deploy will happen here"
+  script: ghr_v0.12.0_linux_amd64/ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN -n $TRAVIS_TAG --debug $TRAVIS_TAG bin/
   on:
     tags: true
