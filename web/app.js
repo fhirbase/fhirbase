@@ -131,7 +131,7 @@ window.onload = function() {
     runQuery(window.editor);
   };
 
-  fetch("http://fhirbase.github.io/demo-data/default.json")
+  fetch("https://fhirbase.github.io/demo-data/default.json")
     .then(response => {
       return response
         .json()
