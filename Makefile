@@ -3,8 +3,7 @@ export GOPATH   = $(CURDIR)/.gopath
 BASE     = $(GOPATH)/src/$(PACKAGE)
 DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell cat $(BASE)/.version 2> /dev/null || \
-	echo "nightly-\c" && git rev-parse --short HEAD 2> /dev/null || \
-	echo v0.0.0)
+	(echo "nightly-\c" && git rev-parse --short HEAD 2> /dev/null))
 
 GO      = go
 GODOC   = godoc

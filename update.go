@@ -39,7 +39,7 @@ func updateStableBuild() error {
 		return errors.Wrap(err, "error finding most recent fhirbase release")
 	}
 
-	currentVersion := semver.MustParse(Version)
+	currentVersion := semver.MustParse(Version[1:len(Version)])
 
 	if !found || latest.Version.Equals(currentVersion) {
 		log.Println("Current version is the latest.")

@@ -19,7 +19,6 @@ script:
     -e POSTGRES_DB=fhirbase postgres:10.4
   - bash -c 'while ! nc -z localhost 36363 ; do sleep 1 ; done'
   - PGUSER=postgres PGPASSWORD=postgres PGDATABASE=fhirbase PGPORT=36363 make test
-
   - "[ ! -z \"$TRAVIS_TAG\" ] && echo \"$TRAVIS_TAG\" > .version || echo 'non-tag build'"
   - GOOS=linux GOARCH=amd64 BINSUFFIX=-linux-amd64 make
   - GOOS=linux GOARCH=386 BINSUFFIX=-linux-386 make
