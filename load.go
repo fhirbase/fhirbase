@@ -819,8 +819,6 @@ func LoadCommand(c *cli.Context) error {
 
 	files, err := prewalkDirs(c.Args())
 
-	fmt.Printf("%v\n", files)
-
 	if err != nil {
 		return errors.Wrap(err, "cannot prewalk directories")
 	}
