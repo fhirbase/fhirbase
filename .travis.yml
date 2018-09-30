@@ -31,3 +31,9 @@ before_install:
 
 after_success:
   - ghr_v0.12.0_linux_amd64/ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN --prerelease -replace --debug nightly-build bin/
+
+deploy:
+  provider: script
+  script: echo "deploy will happen here"
+  on:
+    tags: true
