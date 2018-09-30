@@ -10,6 +10,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:c14ea66cd6dbc30d78b0d3640721d193ca230c06d0d20148490e89b70da1f89e"
+  name = "github.com/blang/semver"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
+  version = "v3.5.1"
+
+[[projects]]
   digest = "1:6a5d9b0cfaf57fdf23b4b2fdd13e14712fcde8459e45f77ddf36f64ae7a796d2"
   name = "github.com/denisbrodbeck/machineid"
   packages = ["."]
@@ -26,6 +34,14 @@
   version = "v1.13.3"
 
 [[projects]]
+  digest = "1:f4415850a800c71a2dcd2c4dac97bfda4b5d8443644e54214525e64468fc57e3"
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  pruneopts = "U"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
+
+[[projects]]
   digest = "1:dc05096238235f47dca6f3674dc98366c0aa1ef5af8cfaacc966f8e99a3fd280"
   name = "github.com/google/go-cmp"
   packages = [
@@ -37,6 +53,34 @@
   pruneopts = "U"
   revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
   version = "v0.2.0"
+
+[[projects]]
+  digest = "1:adf017638d532cde8d78ad29651ddb66b483d329f31d27c32e3f24dfa42acb7e"
+  name = "github.com/google/go-github"
+  packages = ["github"]
+  pruneopts = "U"
+  revision = "f55b50f38167644bb7e4be03d9a2bde71d435239"
+  version = "v18.2.0"
+
+[[projects]]
+  digest = "1:b08ee366b946aaf9fc34ae3db6b6efa8caa193f30e119e02d2751e56737f482a"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = "U"
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:79c493239548717f3ca565189e3c4b9778a0c702fbfeb3e9e21befe4a90201f2"
+  name = "github.com/inconshreveable/go-update"
+  packages = [
+    ".",
+    "internal/binarydist",
+    "internal/osext",
+  ]
+  pruneopts = "U"
+  revision = "8152e7eb6ccf8679a64582a66b78519688d156ad"
 
 [[projects]]
   digest = "1:25c472f0073b930412e65c8aae95181029993e05a1fb6a8bc5393e3471338e3d"
@@ -94,12 +138,41 @@
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:bcee52331ee45dd5988ad11f2d4ec329c2f8be1b7ce88b1e9bfcfbde4559c701"
+  name = "github.com/rhysd/go-github-selfupdate"
+  packages = ["selfupdate"]
+  pruneopts = "U"
+  revision = "4bfc1aa0302c89605b9bf20a8bb4e1af625bc714"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:7f569d906bdd20d906b606415b7d794f798f91a62fcfb6a4daa6d50690fb7a3f"
   name = "github.com/satori/go.uuid"
   packages = ["."]
   pruneopts = "U"
   revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:9b81d5e154dd605a05fb4cdddd02139245527f59c0ff5401a3b5fc45ec675cc2"
+  name = "github.com/tcnksm/go-gitconfig"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "d154598bacbf4501c095a309753c5d4af66caa81"
+  version = "v0.1.2"
+
+[[projects]]
+  digest = "1:e49a19eacc3de3b196b45fbb7b87e82cce73054edae00ac4ed4ca4124f64b3d0"
+  name = "github.com/ulikunitz/xz"
+  packages = [
+    ".",
+    "internal/hash",
+    "internal/xlog",
+    "lzma",
+  ]
+  pruneopts = "U"
+  revision = "0c6b41e72360850ca4f98dc341fd999726ea007f"
+  version = "v0.5.4"
 
 [[projects]]
   digest = "1:c780324db3f98be469be071899ad622f88a09c96861d912b178b7a439d2ebdf1"
@@ -131,6 +204,28 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c5305269e4fad091649d948ee514389cafb97d9085f37df1dc2d8799aebfa18c"
+  name = "golang.org/x/net"
+  packages = [
+    "context",
+    "context/ctxhttp",
+  ]
+  pruneopts = "U"
+  revision = "4dfa2610cdf3b287375bbba5b8f2a14d3b01d8de"
+
+[[projects]]
+  branch = "master"
+  digest = "1:8e480e2b1ab8a4805608126d46691293e7318787db822dd6a20368df86d20671"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "internal",
+  ]
+  pruneopts = "U"
+  revision = "d2e6202438beef2727060aa7cabdd924d92ebfd9"
+
+[[projects]]
+  branch = "master"
   digest = "1:76be8a0a7c27ec301b4fcac23b44e95eff3a9041abe4222719fc1970d7ebad10"
   name = "golang.org/x/sys"
   packages = [
@@ -140,6 +235,22 @@
   ]
   pruneopts = "U"
   revision = "ebe1bf3edb3325c393447059974de898d5133eb8"
+
+[[projects]]
+  digest = "1:e033c607f6437c62c5bb4697d8cbb456fd7852d36d2b0e014e540a23cc938451"
+  name = "google.golang.org/appengine"
+  packages = [
+    "internal",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch",
+  ]
+  pruneopts = "U"
+  revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
+  version = "v1.2.0"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -152,6 +263,7 @@
     "github.com/jackc/pgx/pgtype",
     "github.com/json-iterator/go",
     "github.com/pkg/errors",
+    "github.com/rhysd/go-github-selfupdate/selfupdate",
     "github.com/satori/go.uuid",
     "github.com/urfave/cli",
     "github.com/vbauerster/mpb",

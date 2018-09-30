@@ -260,6 +260,16 @@ then web server will listen on all available network interfaces.`,
 				},
 			},
 		},
+		{
+			Name:      "update",
+			HelpName:  "update",
+			Hidden:    false,
+			Usage:     "Updates Fhirbase to most recent version",
+			ArgsUsage: "",
+			Description: `
+Updates Fhirbase to most recent version.`,
+			Action: updateCommand,
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {
