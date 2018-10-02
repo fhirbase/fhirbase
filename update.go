@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -42,7 +41,7 @@ func updateStableBuild() error {
 	currentVersion := semver.MustParse(Version[1:len(Version)])
 
 	if !found || latest.Version.Equals(currentVersion) {
-		log.Println("Current version is the latest.")
+		fmt.Printf("Current version is the latest.\n")
 		return nil
 	}
 
