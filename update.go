@@ -3,10 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/blang/semver"
+	update "github.com/inconshreveable/go-update"
 	"github.com/pkg/errors"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 	"github.com/urfave/cli"
@@ -28,7 +31,6 @@ func readYesNo() bool {
 	}
 
 	return false
-
 }
 
 func updateStableBuild() error {
@@ -64,11 +66,29 @@ func updateStableBuild() error {
 
 func updateNightlyBuild() error {
 	fmt.Print("Do you want to update Fhirbase to the latest nightly (unstable) build? (y/n): ")
+
 	if !readYesNo() {
 		return nil
 	}
 
-	fmt.Printf("TODO: not implemented yet\n")
+	url := fmt.Sprintf("https://github.com/fhirbase/fhirbase/releases/download/nightly-build/fhirbase-%s-%s", runtime.GOOS, runtime.GOARCH)
+
+	resp, err := http.Get(url)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot perform http query to get latest nightly build")
+	}
+
+	defer resp.Body.Close()
+	fmt.Printf("HTTP request finished with %d, starting update...\n", resp.StatusCode)
+
+	err = update.Apply(resp.Body, update.Options{})
+
+	if err != nil {
+		return errors.Wrap(err, "cannot apply Fhirbase update")
+	}
+
+	fmt.Printf("Fhirbase updated!\n")
 
 	return nil
 }
