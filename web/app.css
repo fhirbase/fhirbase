@@ -28,6 +28,13 @@
     padding: 5px 0 15px;
 }
 
+#menu a {
+  font-weight: bold;
+  display: inline-block;
+  margin-right: 2.5em;
+  vertical-align: middle;
+}
+
 #menu h3 {
 }
 
