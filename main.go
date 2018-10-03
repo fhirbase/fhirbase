@@ -40,6 +40,11 @@ func main() {
 	app.Usage = "command-line utility to operate on FHIR data with PostgreSQL database."
 
 	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:        "nostats",
+			Usage:       "Disable sending of usage statistics",
+			Destination: &DisableStats,
+		},
 		cli.StringFlag{
 			Name:        "host, n",
 			Value:       "localhost",
@@ -284,9 +289,13 @@ version.`,
 	err := app.Run(os.Args)
 
 	if err != nil {
+		submitErrorEvent(err)
 		fmt.Printf("%+v\n", err)
+
+		waitForAllEventsSubmitted()
 		os.Exit(1)
 	}
 
+	waitForAllEventsSubmitted()
 	os.Exit(0)
 }

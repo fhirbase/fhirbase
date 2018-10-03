@@ -113,6 +113,8 @@ func InitCommand(c *cli.Context) error {
 
 	bars.Wait()
 
+	submitInitEvent(fhirVersion)
+
 	fmt.Printf("Database initialized with FHIR schema version '%s'\n", fhirVersion)
 
 	return nil

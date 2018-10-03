@@ -694,7 +694,7 @@ func prewalkDirs(fileNames []string) ([]string, error) {
 	return result, nil
 }
 
-func loadFIles(files []string, ldr loader, memUsage bool) error {
+func loadFiles(files []string, ldr loader, memUsage bool) error {
 	db := GetConnection(nil)
 	defer db.Close()
 
@@ -738,7 +738,9 @@ func loadFIles(files []string, ldr loader, memUsage bool) error {
 
 	bars.Wait()
 
-	loadDuration := time.Since(startTime) / time.Second
+	loadDuration := int(time.Since(startTime).Seconds())
+
+	submitLoadEvent(insertedCounts, loadDuration)
 
 	fmt.Printf("Done, inserted %d resources in %d seconds:\n", totalCount, loadDuration)
 
@@ -814,7 +816,7 @@ func LoadCommand(c *cli.Context) error {
 			f.Close()
 		}
 
-		return loadFIles(files, ldr, memUsage)
+		return loadFiles(files, ldr, memUsage)
 	}
 
 	files, err := prewalkDirs(c.Args())
@@ -823,5 +825,5 @@ func LoadCommand(c *cli.Context) error {
 		return errors.Wrap(err, "cannot prewalk directories")
 	}
 
-	return loadFIles(files, ldr, memUsage)
+	return loadFiles(files, ldr, memUsage)
 }
