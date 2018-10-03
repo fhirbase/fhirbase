@@ -2,19 +2,15 @@ PACKAGE  = fhirbase
 export GOPATH   = $(CURDIR)/.gopath
 BASE     = $(GOPATH)/src/$(PACKAGE)
 DATE    ?= $(shell date +%FT%T%z)
-VERSION ?= $(shell ((cat $(BASE)/.version | tr -d '\n') 2> /dev/null) || (echo "nightly-\c" && git rev-parse --short HEAD 2> /dev/null))
+VERSION ?= $(shell (cat $(BASE)/.version 2> /dev/null) || (echo 'nightly-\c' && git rev-parse --short HEAD 2> /dev/null)  | tr -d "\n")
 
 GO      = go
 GODOC   = godoc
 GOFMT   = gofmt
 DEP     = dep
 
-V = 0
-Q = $(if $(filter 1,$V),,@)
-M = $(shell printf "\033[34;1m▶\033[0m")
-
 .PHONY: all
-all: vendor a_main-packr.go lint fmt | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
+all: vendor a_main-packr.go lint fmt | $(BASE)
 	$Q cd $(BASE) && $(GO) build \
 	-v \
 	-tags release \
@@ -45,17 +41,17 @@ $(GOPATH)/bin/packr:
 # Tools
 
 .PHONY: packr
-packr: $(GOPATH)/bin/packr ; $(info $(M) running packr…)
+packr: $(GOPATH)/bin/packr
 	$(GOPATH)/bin/packr -z
 
 .PHONY: lint
-lint: vendor | $(BASE) $(GOLINT) ; $(info $(M) running golint…) @ ## Run golint
+lint: vendor | $(BASE) $(GOLINT)
 	$Q cd $(BASE) && ret=0 && for pkg in $(PKGS); do \
 	test -z "$$($(GOLINT) $$pkg | tee /dev/stderr)" || ret=1 ; \
 	done ; exit $$ret
 
 .PHONY: fmt
-fmt: ; $(info $(M) running gofmt…) @ ## Run gofmt on all source files
+fmt:
 	@ret=0 && for d in $$($(GO) list -f '{{.Dir}}' ./... | grep -v /vendor/); do \
 	$(GOFMT) -l -w $$d/*.go || ret=$$? ; \
 	done ; exit $$ret

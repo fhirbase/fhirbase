@@ -36,6 +36,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "fhirbase"
+	app.Version = Version
 	app.Usage = "command-line utility to operate on FHIR data with PostgreSQL database."
 
 	app.Flags = []cli.Flag{
@@ -267,10 +268,13 @@ then web server will listen on all available network interfaces.`,
 			Usage:     "Updates Fhirbase to most recent version",
 			ArgsUsage: "",
 			Description: `
-Updates Fhirbase to most recent version.`,
-			Action: updateCommand,
-		},
-	}
+Updates Fhirbase to most recent version.
+
+If you currently use nightly build (Fhirbase version starts with
+'nightly-' and commit hash), it will update Fhirbase to most recent
+nightly build. Otherwise it will update to most recent stable
+version.`,
+			Action: updateCommand}}
 
 	app.Action = func(c *cli.Context) error {
 		cli.HelpPrinter(os.Stdout, cli.AppHelpTemplate, app)
