@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -283,10 +284,62 @@ func (s *copyFromBundleSource) Err() error {
 	return s.err
 }
 
+type singleResourceBundle struct {
+	file        *bundleFile
+	alreadyRead bool
+}
+
+func newSingleResourceBundle(f *bundleFile) (*singleResourceBundle, error) {
+	b := new(singleResourceBundle)
+
+	b.file = f
+	b.alreadyRead = false
+
+	return b, nil
+}
+
+func (b *singleResourceBundle) Close() {
+	b.file.Close()
+}
+
+func (b *singleResourceBundle) Count() int {
+	return 1
+}
+
+func (b *singleResourceBundle) Next() (map[string]interface{}, error) {
+	if b.alreadyRead {
+		return nil, io.EOF
+	}
+
+	content, err := ioutil.ReadAll(b.file)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read file content")
+	}
+
+	iter := jsoniter.ConfigFastest.BorrowIterator(content)
+	defer jsoniter.ConfigFastest.ReturnIterator(iter)
+
+	res := iter.Read()
+
+	if res == nil {
+		return nil, errors.Wrap(iter.Error, "cannot read resource from file")
+	}
+
+	resMap, ok := res.(map[string]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("got non-object value in the entries array")
+	}
+
+	b.alreadyRead = true
+
+	return resMap, nil
+}
+
 type ndjsonBundle struct {
 	count   int
 	file    *bundleFile
-	gzr     *gzip.Reader
 	reader  *bufio.Reader
 	curline int
 }
@@ -381,8 +434,8 @@ func (b *ndjsonBundle) Count() int {
 func (b *ndjsonBundle) Next() (map[string]interface{}, error) {
 	line, err := b.reader.ReadBytes('\n')
 
-	iter := jsoniter.ConfigDefault.BorrowIterator(line)
-	defer jsoniter.ConfigDefault.ReturnIterator(iter)
+	iter := jsoniter.ConfigFastest.BorrowIterator(line)
+	defer jsoniter.ConfigFastest.ReturnIterator(iter)
 
 	if err != nil {
 		return nil, err
@@ -453,8 +506,11 @@ func newMultifileBundle(fileNames []string) (*multifileBundle, error) {
 			bndl, err = newNdjsonBundle(f)
 		} else if bndlType == fhirBundleType {
 			bndl, err = newFhirBundle(f)
+		} else if bndlType == singleResourceBundleType {
+			bndl, err = newSingleResourceBundle(f)
 		} else {
 			fmt.Printf("cannot create bundle for %s\n", fileName)
+			continue
 		}
 
 		if err != nil {
