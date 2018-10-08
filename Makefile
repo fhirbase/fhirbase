@@ -66,5 +66,5 @@ test: fmt lint vendor packr
 
 .PHONY: docker
 docker: Dockerfile bin/fhirbase-linux-amd64
-	docker build . -t fhirbase/fhirbase:$(VERSION)
-	docker push fhirbase/fhirbase:nightly-ed4fe4e
+	docker build . -t fhirbase/fhirbase:$(VERSION) \
+	docker push fhirbase/fhirbase:$(VERSION)
