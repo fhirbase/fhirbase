@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/gobuffalo/packr"
@@ -163,6 +165,18 @@ func WebCommand(c *cli.Context) error {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
+
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		if err := server.Shutdown(context.Background()); err != nil {
+			logger.Printf("HTTP server Shutdown: %v\n", err)
+		}
+		close(idleConnsClosed)
+	}()
 
 	logger.Printf("Starting web server on %s\n", addr)
 

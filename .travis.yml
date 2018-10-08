@@ -25,6 +25,8 @@ script:
   - GOOS=windows GOARCH=amd64 BINSUFFIX=-windows-amd64.exe make
   - GOOS=windows GOARCH=386 BINSUFFIX=-windows-386.exe make
   - GOOS=darwin GOARCH=amd64 BINSUFFIX=-darwin-amd64 make
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - "[ ! -z \"$TRAVIS_TAG\" ] && make docker"
 
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
