@@ -1,18 +1,6 @@
 window.onload = function() {
   var mime = "text/x-pgsql";
 
-  function tag(acc, tg, props) {
-    acc.push("<" + tg);
-    var cnt = Array.prototype.slice.call(arguments, 3);
-    for (var k in props) {
-      var v = props[k];
-      acc.push(k + "=" + '"' + v + '"');
-    }
-    acc.push(">");
-    Array.prototype.push.apply(acc, cnt);
-    acc.push("</" + tg + ">");
-  }
-
   const escapeHtml = unsafe => {
     return unsafe
       .replace(/&/g, "&amp;")
@@ -21,6 +9,18 @@ window.onload = function() {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   };
+
+  function tag(acc, tg, props) {
+    acc.push("<" + tg);
+    var cnt = Array.prototype.slice.call(arguments, 3);
+    for (var k in props) {
+      var v = props[k];
+      acc.push(k + "=" + '"' + escapeHtml(v) + '"');
+    }
+    acc.push(">");
+    Array.prototype.push.apply(acc, cnt);
+    acc.push("</" + tg + ">");
+  }
 
   const formatResultField = f => {
     if (typeof f === "object" && f !== null) {
