@@ -19,7 +19,7 @@ History](https://www.hl7.org/fhir/http.html#history).
 ## Getting Started
 
 Please proceed to the [Getting
-Started](https://fhirbase.gitbook.io/project/getting-started) tutorial
+Started](https://fhirbase.aidbox.app/getting-started) tutorial
 for PostgreSQL and Fhirbase installation instructions.
 
 ## Usage Statistics
