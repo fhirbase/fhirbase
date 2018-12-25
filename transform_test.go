@@ -40,12 +40,12 @@ var cases = [][]string{
 		`{
 "resourceType":"CarePlan",
 "careTeam":[
-  {"id":"1","type":"Practitioner","display":"John"},
-  {"id":"2","type":"Practitioner","display":"Ian"}
+  {"id":"1","resourceType":"Practitioner","display":"John"},
+  {"id":"2","resourceType":"Practitioner","display":"Ian"}
 ],
 "identifier":[
   {"system":"foo","value":"bar"},
-  {"system":"foo","value":"baz","assigner":{"id":"42","type":"Practitioner","display":"John Doe"}}
+  {"system":"foo","value":"baz","assigner":{"id":"42","resourceType":"Practitioner","display":"John Doe"}}
 ]}`,
 	},
 	[]string{
@@ -58,7 +58,7 @@ var cases = [][]string{
 		`{
 "resourceType":"Claim",
 "information": [
-  {"value": {"Reference": { "type": "Immunization", "id": "123" }}}
+  {"value": {"Reference": { "resourceType": "Immunization", "id": "123" }}}
 ]}`,
 	},
 	[]string{
@@ -69,7 +69,7 @@ var cases = [][]string{
   "multipleBirthInteger": 2,
   "managingOrganization": { "reference": "Organization/1", "display": "ACME corp"}
 }`, `{
-  "managingOrganization":{"id":"1","type":"Organization","display":"ACME corp"},
+  "managingOrganization":{"id":"1","resourceType":"Organization","display":"ACME corp"},
   "resourceType":"Patient",
   "deceased": { "boolean": true },
   "multipleBirth": { "integer": 2 },

@@ -67,7 +67,7 @@ func transform(node interface{}, trNode map[string]interface{}, tr map[string]in
 
 				if len(refcomps) == 2 {
 					newref["id"] = refcomps[1]
-					newref["type"] = refcomps[0]
+					newref["resourceType"] = refcomps[0]
 				} else {
 					newref["id"] = refstr
 				}
