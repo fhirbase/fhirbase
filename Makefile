@@ -18,6 +18,8 @@ all: vendor a_main-packr.go lint fmt | $(BASE)
 	-o bin/$(PACKAGE)$(BINSUFFIX) *.go
 
 a_main-packr.go: $(GOPATH)/bin/packr
+	rm -rfv $(GOPATH)/src/golang.org/x/tools/go/loader/testdata; \
+	rm -rfv $(GOPATH)/src/golang.org/x/tools/cmd/fiximports/testdata; \
 	$(GOPATH)/bin/packr -z
 
 $(BASE):
@@ -36,12 +38,14 @@ vendor: Gopkg.lock | $(BASE)
 
 # # install packr with go get because dep doesn't build binaries for us
 $(GOPATH)/bin/packr:
-	$(GO) get -u github.com/gobuffalo/packr/...
+	echo "here" && $(GO) get -u github.com/gobuffalo/packr/...
 
 # Tools
 
 .PHONY: packr
 packr: $(GOPATH)/bin/packr
+	rm -rfv $(GOPATH)/src/golang.org/x/tools/go/loader/testdata; \
+	rm -rfv $(GOPATH)/src/golang.org/x/tools/cmd/fiximports/testdata; \
 	$(GOPATH)/bin/packr -z
 
 .PHONY: lint

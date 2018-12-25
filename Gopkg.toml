@@ -1,6 +1,6 @@
 [[constraint]]
   name = "github.com/gobuffalo/packr"
-  version = "1.13.3"
+  version = "1.21.9"
 
 [[constraint]]
   name = "github.com/jackc/pgx"
