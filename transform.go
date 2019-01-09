@@ -137,7 +137,7 @@ func getTransformData(fhirVersion string) (map[string]interface{}, error) {
 	}
 
 	box := packr.NewBox("./transform")
-	trData, err := box.MustBytes(fmt.Sprintf("fhirbase-import-%s.json", fhirVersion))
+	trData, err := box.Find(fmt.Sprintf("fhirbase-import-%s.json", fhirVersion))
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find transformations data for FHIR version %s", fhirVersion)

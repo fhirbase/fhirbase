@@ -40,13 +40,13 @@ func PerformInit(db *pgx.Conn, fhirVersion string, cb initProgressCb) error {
 	var functionStatements []string
 
 	box := packr.NewBox("./schema")
-	schema, err := box.MustBytes(fmt.Sprintf("fhirbase-%s.sql.json", fhirVersion))
+	schema, err := box.Find(fmt.Sprintf("fhirbase-%s.sql.json", fhirVersion))
 
 	if err != nil {
 		return errors.Wrapf(err, "Cannot find FHIR schema '%s'", fhirVersion)
 	}
 
-	functions, err := box.MustBytes("functions.sql.json")
+	functions, err := box.Find("functions.sql.json")
 
 	if err != nil {
 		return errors.Wrap(err, "Cannot find fhirbase function definitions")
