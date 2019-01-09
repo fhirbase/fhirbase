@@ -67,6 +67,13 @@ func main() {
 			Destination: &PgConfig.Username,
 		},
 		cli.StringFlag{
+			Name:        "sslmode, s",
+			Value:       "prefer",
+			Usage:       "PostgreSQL sslmode setting (disable/allow/prefer/require/verify-ca/verify-full)",
+			EnvVar:      "PGSSLMODE",
+			Destination: &PgConfig.SSLMode,
+		},
+		cli.StringFlag{
 			Name:  "fhir, f",
 			Value: "3.3.0",
 			Usage: "FHIR version to use. Know FHIR versions are: " + strings.Join(AvailableSchemas, ", "),

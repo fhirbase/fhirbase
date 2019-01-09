@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 
@@ -10,6 +11,7 @@ import (
 
 // PgConnectionConfig struct stores credentials for PG connection
 type PgConnectionConfig struct {
+	SSLMode  string
 	Host     string
 	Port     uint
 	Username string
@@ -28,6 +30,39 @@ func GetPgxConnectionConfig(cfg *pgx.ConnConfig) pgx.ConnConfig {
 		User:      PgConfig.Username,
 		Password:  PgConfig.Password,
 		Database:  PgConfig.Database,
+	}
+
+	// Match libpq default behavior
+	if PgConfig.SSLMode == "" {
+		PgConfig.SSLMode = "prefer"
+	}
+
+	switch PgConfig.SSLMode {
+	case "disable":
+		mainConfig.UseFallbackTLS = false
+		mainConfig.TLSConfig = nil
+		mainConfig.FallbackTLSConfig = nil
+	case "allow":
+		mainConfig.UseFallbackTLS = true
+		mainConfig.FallbackTLSConfig = &tls.Config{InsecureSkipVerify: true}
+	case "prefer":
+		mainConfig.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		mainConfig.UseFallbackTLS = true
+		mainConfig.FallbackTLSConfig = nil
+	case "require":
+		mainConfig.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	case "verify-ca", "verify-full":
+		mainConfig.TLSConfig = &tls.Config{
+			ServerName: mainConfig.Host,
+		}
+	default:
+		panic("--sslmode param is invalid")
+	}
+
+	envConfig, err := pgx.ParseEnvLibpq()
+
+	if err == nil {
+		mainConfig = envConfig.Merge(mainConfig)
 	}
 
 	if cfg != nil {
