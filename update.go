@@ -21,12 +21,14 @@ const FhirbaseRepo = "fhirbase/fhirbase"
 func readYesNo() bool {
 	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 
-	if err != nil || (input != "y\n" && input != "n\n" && input != "Y\n" && input != "N\n") {
-		fmt.Printf("Invalid input. Only 'y' or 'n' are accepted.\n")
+	input = strings.ToLower(input)
+
+	if err != nil || (input != "y\n" && input != "n\n" && input != "yes\n" && input != "no\n") {
+		fmt.Printf("Invalid input. Only 'y', 'n', 'yes', 'no'j are accepted.\n")
 		return false
 	}
 
-	if input == "y\n" || input == "Y\n" {
+	if input == "y\n" || input == "yes\n" {
 		return true
 	}
 
@@ -34,6 +36,8 @@ func readYesNo() bool {
 }
 
 func updateStableBuild() error {
+	selfupdate.EnableLog()
+
 	latest, found, err := selfupdate.DetectLatest(FhirbaseRepo)
 
 	if err != nil {

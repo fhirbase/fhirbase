@@ -182,7 +182,7 @@
   name = "github.com/rhysd/go-github-selfupdate"
   packages = ["selfupdate"]
   pruneopts = "U"
-  revision = "4bfc1aa0302c89605b9bf20a8bb4e1af625bc714"
+  revision = "ff8cf0cdf6939ed3e1a6b38834d15a8de9b327e2"
   version = "v1.0.0"
 
 [[projects]]

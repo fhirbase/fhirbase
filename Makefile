@@ -38,7 +38,7 @@ vendor: Gopkg.lock | $(BASE)
 
 # # install packr with go get because dep doesn't build binaries for us
 $(GOPATH)/bin/packr:
-	echo "here" && $(GO) get -u github.com/gobuffalo/packr/...
+	$(GO) get -u github.com/gobuffalo/packr/...
 
 # Tools
 
