@@ -373,19 +373,22 @@ func (b *fhirBundle) Next() (map[string]interface{}, error) {
 	entryMap, ok := entry.(map[string]interface{})
 
 	if !ok {
-		return nil, fmt.Errorf("got non-object value in the entries array")
+		fmt.Printf("%s: got non-object value in the entries array, skipping rest of the file\n", b.file.file.Name())
+		return nil, io.EOF
 	}
 
 	res, ok := entryMap["resource"]
 
 	if !ok {
-		return nil, fmt.Errorf("cannot get entry.resource attribute")
+		fmt.Printf("%s: cannot get entry.resource attribute, skipping rest of the file\n", b.file.file.Name())
+		return nil, io.EOF
 	}
 
 	resMap, ok := res.(map[string]interface{})
 
 	if !ok {
-		return nil, fmt.Errorf("got non-object value at entry.resource")
+		fmt.Printf("%s: got non-object value at entry.resource, skipping rest of the file\n", b.file.file.Name())
+		return nil, io.EOF
 	}
 
 	return resMap, nil
@@ -442,7 +445,8 @@ func (b *ndjsonBundle) Next() (map[string]interface{}, error) {
 	}
 
 	if iter.WhatIsNext() != jsoniter.ObjectValue {
-		return nil, fmt.Errorf("Expecting to get JSON object at the root of the resource, got `%s` at line %d", strings.Trim(string(line), "\n"), b.curline)
+		fmt.Printf("%s: Expecting to get JSON object at the root of the resource, got `%s` at line %d, skipping rest of the file\n", b.file.file.Name(), strings.Trim(string(line), "\n"), b.curline)
+		return nil, io.EOF
 	}
 
 	b.curline++
@@ -514,7 +518,9 @@ func newMultifileBundle(fileNames []string) (*multifileBundle, error) {
 		}
 
 		if err != nil {
-			return nil, errors.Wrap(err, "cannot create bundle")
+			fmt.Printf("%s: cannot create bundle\n%e\n", f.file.Name(), err)
+			defer f.Close()
+			bndl = nil
 		}
 
 		if bndl != nil {
@@ -716,6 +722,11 @@ func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 		} else {
 			return err
 		}
+	}
+
+	if batch != nil {
+		batch.Send(context.Background(), nil)
+		batch.Close()
 	}
 
 	return nil
