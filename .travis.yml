@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.10.x
+  - 1.12.x
 
 cache:
   directories:
@@ -25,13 +25,6 @@ script:
   - GOOS=windows GOARCH=amd64 BINSUFFIX=-windows-amd64.exe make
   - GOOS=windows GOARCH=386 BINSUFFIX=-windows-386.exe make
   - GOOS=darwin GOARCH=amd64 BINSUFFIX=-darwin-amd64 make
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - "[ ! -z \"$TRAVIS_TAG\" ] && make docker || echo 'non-tag build'"
 
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-  - curl -L https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz --output ghr.tar.gz && tar zxvf ghr.tar.gz
-
-after_script:
-  - ghr_v0.12.0_linux_amd64/ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN --prerelease -replace --debug nightly-build bin/
-  - "[ ! -z \"$TRAVIS_TAG\" ] && ghr_v0.12.0_linux_amd64/ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN -n $TRAVIS_TAG --debug $TRAVIS_TAG bin/"
