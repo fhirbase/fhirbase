@@ -20,6 +20,7 @@ all: vendor a_main-packr.go lint fmt | $(BASE)
 a_main-packr.go: $(GOPATH)/bin/packr
 	rm -rfv $(GOPATH)/src/golang.org/x/tools/go/loader/testdata; \
 	rm -rfv $(GOPATH)/src/golang.org/x/tools/cmd/fiximports/testdata; \
+	rm -rfv $(GOPATH)/src/golang.org/x/tools/internal/lsp/testdata; \
 	$(GOPATH)/bin/packr -z
 
 $(BASE):
@@ -46,6 +47,7 @@ $(GOPATH)/bin/packr:
 packr: $(GOPATH)/bin/packr
 	rm -rfv $(GOPATH)/src/golang.org/x/tools/go/loader/testdata; \
 	rm -rfv $(GOPATH)/src/golang.org/x/tools/cmd/fiximports/testdata; \
+	rm -rfv $(GOPATH)/src/golang.org/x/tools/internal/lsp/testdata; \
 	$(GOPATH)/bin/packr -z
 
 .PHONY: lint
