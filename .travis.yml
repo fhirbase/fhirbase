@@ -34,5 +34,4 @@ before_install:
 
 after_script:
   - ghr_v0.12.0_linux_amd64/ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN --prerelease -replace --debug nightly-build bin/
-  - rm bin/.gitkeep
   - "[ ! -z \"$TRAVIS_TAG\" ] && ghr_v0.12.0_linux_amd64/ghr --username fhirbase -r fhirbase --token $GITHUB_TOKEN -n $TRAVIS_TAG --debug $TRAVIS_TAG bin/"
