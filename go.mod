@@ -12,7 +12,7 @@ require (
 	github.com/gobuffalo/genny v0.6.0 // indirect
 	github.com/gobuffalo/mapi v1.2.0 // indirect
 	github.com/gobuffalo/meta v0.2.1 // indirect
-	github.com/gobuffalo/packr v1.30.1
+	github.com/gobuffalo/packr v1.26.1-0.20190624180515-bded308e56b4
 	github.com/gobuffalo/syncx v0.1.0 // indirect
 	github.com/google/go-cmp v0.2.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
@@ -33,5 +33,6 @@ require (
 	github.com/vbauerster/mpb v3.3.2+incompatible
 	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17 // indirect
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
+	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20200113040837-eac381796e91 // indirect
 )

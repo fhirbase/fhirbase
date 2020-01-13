@@ -10,7 +10,7 @@ GOFMT   = gofmt
 
 .PHONY: all
 all: a_main-packr.go lint fmt | $(BASE)
-	$Q cd $(BASE) && $(GO) build \
+	$(GO) build \
 	-v \
 	-tags release \
 	-ldflags '-X "main.Version=$(VERSION)" -X "main.BuildDate=$(DATE)"' \
@@ -23,23 +23,15 @@ a_main-packr.go: $(GOPATH)/bin/packr
 	go clean -modcache; \
 	$(GOPATH)/bin/packr -z
 
+
 $(BASE):
 	@mkdir -p $(dir $@)
 	@ln -sf $(CURDIR) $@
 
-# # install packr with go get because dep doesn't build binaries for us
 $(GOPATH)/bin/packr:
-	$(GO) get -u github.com/gobuffalo/packr/...
+	cd $(GOPATH)/pkg/mod/github.com/gobuffalo/packr\@v1.26.1-0.20190624180515-bded308e56b4/ && $(GO) install ./packr
 
 # Tools
-
-.PHONY: packr
-packr: $(GOPATH)/bin/packr
-	rm -rfv $(GOPATH)/src/golang.org/x/tools/go/loader/testdata; \
-	rm -rfv $(GOPATH)/src/golang.org/x/tools/cmd/fiximports/testdata; \
-	rm -rfv $(GOPATH)/src/golang.org/x/tools/internal/lsp/testdata; \
-	go clean -modcache; \
-	$(GOPATH)/bin/packr -z
 
 .PHONY: lint
 lint: $(BASE) $(GOLINT)
