@@ -51,8 +51,8 @@ clean:
 	rm -rf bin .gopath vendor *-packr.go
 
 .PHONY: tests
-test: fmt lint packr
-	cd $(BASE) && go test $(ARGS)
+test: fmt lint a_main-packr.go
+	go test $(ARGS)
 
 .PHONY: docker
 docker: Dockerfile bin/fhirbase-linux-amd64
