@@ -27,7 +27,7 @@ RUN mkdir /pgdata && chown postgres:postgres /pgdata
 
 USER postgres
 
-RUN pg_ctl -D /pgdata start & \
+RUN PGDATA=/pgdata /docker-entrypoint.sh postgres  & \
     until psql -U postgres -c '\q'; do \
         >&2 echo "Postgres is starting up..."; \
         sleep 5; \
