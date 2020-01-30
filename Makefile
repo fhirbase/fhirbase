@@ -57,4 +57,5 @@ test: fmt lint a_main-packr.go
 .PHONY: docker
 docker: Dockerfile bin/fhirbase-linux-amd64
 	docker build . -t fhirbase/fhirbase:$(VERSION) -t fhirbase/fhirbase:latest && \
-	docker push fhirbase/fhirbase:$(VERSION) fhirbase/fhirbase:latest
+	docker push fhirbase/fhirbase:$(VERSION) && \
+	docker push fhirbase/fhirbase:latest
