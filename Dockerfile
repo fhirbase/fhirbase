@@ -27,13 +27,15 @@ RUN mkdir /pgdata && chown postgres:postgres /pgdata
 
 USER postgres
 
-RUN PGDATA=/pgdata /docker-entrypoint.sh postgres & until psql -U postgres -c '\q'; do \
+RUN pg_ctl -D /pgdata start & \
+    until psql -U postgres -c '\q'; do \
         >&2 echo "Postgres is starting up..."; \
         sleep 5; \
     done && \
     psql -U postgres -c 'create database fhirbase;' && \
     fhirbase -d fhirbase init && \
-    fhirbase -d fhirbase load --mode=insert ./bundle.ndjson.gzip
+    fhirbase -d fhirbase load --mode=insert ./bundle.ndjson.gzip \
+    pg_ctl -D /pgdata stop
 
 EXPOSE 3000
 
