@@ -15,6 +15,7 @@ require (
 	github.com/gobuffalo/packr v1.26.1-0.20190624180515-bded308e56b4
 	github.com/gobuffalo/syncx v0.1.0 // indirect
 	github.com/google/go-cmp v0.2.0
+	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/jackc/pgx v3.2.0+incompatible
 	github.com/json-iterator/go v1.1.5

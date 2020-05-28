@@ -16,6 +16,7 @@ import (
 
 	"compress/gzip"
 
+	"github.com/iancoleman/strcase"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
 	jsoniter "github.com/json-iterator/go"
@@ -665,7 +666,8 @@ func (l *copyLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 	src := newCopyFromBundleSource(bndl, l.fhirVersion, cb)
 
 	for src.ResourceType() != "" {
-		tableName := strings.ToLower(src.ResourceType())
+		// tableName := strings.ToLower(src.ResourceType())
+		tableName := strcase.ToSnake(src.ResourceType())
 
 		_, err := db.CopyFrom(pgx.Identifier{tableName}, []string{"id", "txid", "status", "resource"}, src)
 
@@ -697,7 +699,8 @@ func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
 			}
 
 			resourceType, _ := resource["resourceType"].(string)
-			tblName := strings.ToLower(resourceType)
+			// tblName := strings.ToLower(resourceType)
+			tblName := strcase.ToSnake(resourceType)
 			id, ok := resource["id"].(string)
 
 			if !ok || id == "" {

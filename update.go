@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/iancoleman/strcase"
 	update "github.com/inconshreveable/go-update"
 	"github.com/pkg/errors"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
@@ -21,7 +22,8 @@ const FhirbaseRepo = "fhirbase/fhirbase"
 func readYesNo() bool {
 	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 
-	input = strings.ToLower(input)
+	// input = strings.ToLower(input)
+	input = strcase.ToSnake(input)
 
 	if err != nil || (input != "y\n" && input != "n\n" && input != "yes\n" && input != "no\n") {
 		fmt.Printf("Invalid input. Only 'y', 'n', 'yes', 'no'j are accepted.\n")
