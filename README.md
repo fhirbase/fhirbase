@@ -16,6 +16,11 @@ History](https://www.hl7.org/fhir/http.html#history).
     <img src="https://cdn.rawgit.com/fhirbase/fhirbase/a6aff815/demo/asciicast.svg" />
 </p>
 
+## Status
+
+Sorry guys, this project is frozen untill new hero will support it.
+Most of ideas from fhirbase is moved and developed in [Aidbox FHIR Platform](https://www.health-samurai.io/aidbox)
+
 ## Getting Started
 
 Please proceed to the [Getting
