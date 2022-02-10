@@ -41,9 +41,7 @@ flag.
 
 ## Development
 
-To participate in Fhirbase development you'll need to install Golang
-and [Dep package
-manager](https://golang.github.io/dep/docs/installation.html).
+To participate in Fhirbase development you'll need to install Golang.
 
 Fhirbase is Makefile-based project, so building it is as simple as
 invoking `make` command.
