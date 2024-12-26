@@ -1,0 +1,93 @@
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Fhirbase UI</title>
+		<link
+			rel="stylesheet"
+			href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+			integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+			crossorigin="anonymous" />
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.0/codemirror.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.0/addon/hint/show-hint.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.0/addon/lint/lint.min.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.0/theme/duotone-light.css" />
+		<link rel="stylesheet" href="app.css" />
+	</head>
+	<body>
+		<script
+			src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+			integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+			crossorigin="anonymous"></script>
+		<script
+			src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+			integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+			crossorigin="anonymous"></script>
+		<script
+			src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+			integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+			crossorigin="anonymous"></script>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.0/codemirror.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.0/mode/sql/sql.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.0/addon/hint/sql-hint.min.js"></script>
+
+		<div id="container">
+			<div id="left">
+				<div id="menu">
+					<a
+						href="https://www.health-samurai.io/fhirbase"
+						data-ga="fb-landing"
+						data-ga-label="Demo page"
+						><img src="logo.svg"
+					/></a>
+
+					<a
+						href="https://www.health-samurai.io/fhirbase-downloads"
+						data-ga="fb-download"
+						data-ga-label="Demo page"
+						>Download Fhirbase</a
+					>
+
+					<a
+						href="https://aidbox.gitbook.io/fhirbase/"
+						data-ga="fb-docs-getting-started"
+						data-ga-label="Demo page"
+						>Fhirbase Documentation</a
+					>
+				</div>
+
+				<div id="editor"></div>
+
+				<div id="hint">
+					<div>
+						Press <kbd>Ctrl+Enter</kbd> to run query or click
+						<button
+							id="submit"
+							onclick="submitQuery()"
+							type="button"
+							class="btn btn-primary">
+							Submit
+						</button>
+					</div>
+				</div>
+
+				<div id="results"></div>
+			</div>
+
+			<div id="right">
+				<h3>Snippets</h3>
+
+				<p>Loading...</p>
+			</div>
+		</div>
+		<script src="app.js"></script>
+	</body>
+</html>

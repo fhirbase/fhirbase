@@ -1,4 +1,7 @@
-package main
+/*
+Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+*/
+package cmd
 
 import (
 	"bufio"
@@ -6,24 +9,25 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
+	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"text/tabwriter"
-	"time"
 
 	"compress/gzip"
+	"os"
+	"time"
 
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/pgtype"
+	db "github.com/fhirbase/fhirbase/db"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
-	"github.com/urfave/cli"
-	"github.com/vbauerster/mpb"
-	"github.com/vbauerster/mpb/decor"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/schollz/progressbar/v3"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type bundleType int
@@ -33,13 +37,186 @@ type bundleFile struct {
 	gzr  *gzip.Reader
 }
 
+const (
+	ndjsonBundleType bundleType = iota
+	fhirBundleType
+	singleResourceBundleType
+	unknownBundleType
+)
+
+type bundle interface {
+	Next() (map[string]interface{}, error)
+	Close()
+	Count() int
+}
+
+type loaderCb func(curType string, duration time.Duration)
+
+type loader interface {
+	Load(ctx context.Context, db *pgxpool.Pool, bndl bundle, cb loaderCb) error
+}
+
+type copyFromBundleSource struct {
+	bndl        bundle
+	err         error
+	res         map[string]interface{}
+	cb          loaderCb
+	currentRt   string
+	prevTime    time.Time
+	fhirVersion string
+}
+
+type singleResourceBundle struct {
+	file        *bundleFile
+	alreadyRead bool
+}
+
+type ndjsonBundle struct {
+	count   int
+	file    *bundleFile
+	reader  *bufio.Reader
+	curline int
+}
+
+type fhirBundle struct {
+	count   int
+	file    *bundleFile
+	curline int
+	iter    *jsoniter.Iterator
+}
+type copyLoader struct {
+	fhirVersion string
+}
+
+type insertLoader struct {
+	fhirVersion string
+}
+
+type multifileBundle struct {
+	count          int
+	bundles        []bundle
+	currentBndlIdx int
+}
+
+// loadCmd represents the load command
+var loadCmd = &cobra.Command{
+	Use:       "load",
+	Short:     "A brief description of your command",
+	ValidArgs: []string{"filename"},
+	Long: `
+Load command loads FHIR resources from named source(s) into the
+Fhirbase database.
+
+You can provide either single Bulk Data URL or several file paths as
+an input.
+
+Fhirbase can read from following file types:
+
+  * NDJSON files
+  * transaction or collection FHIR Bundles
+  * regular JSON files containing single FHIR resource
+
+Also Fhirbase can read gziped files, so all of the supported file
+formats can be additionally gziped.
+
+You are allowed to mix different file formats and gziped/non-gziped
+files in a single command input, i.e.:
+
+  fhirbase load *.ndjson.gzip patient-john-doe.json my-tx-bundle.json
+
+Fhirbase automatically detects gzip compression and format of the
+input file, so you don't have to provide any additional hints. Even
+file name extensions can be ommited, because Fhirbase analyzes file
+content, not the file name.
+
+If Bulk Data URL was provided, Fhirbase will download NDJSON files
+first (see the help for "bulkget" command) and then load them as a
+regular local files. Load command accepts all the command-line flags
+accepted by bulkget command.
+
+Fhirbase reads input files sequentially, reading single resource at a
+time. And because of PostgreSQL traits it's important if Fhirbase gets
+a long enough series of resources of the same type from the provided
+input, or it gets resource of a different type on every next read. We
+will call those two types of inputs "grouped" and "non-grouped",
+respectively. Good example of grouped input is NDJSON files produced
+by Bulk Data API server. A set of JSON files from FHIR distribution's
+"examples" directory is an example of non-grouped input. Because
+Fhirbase reads resources one by one and do not load the whole file, it
+cannot know if you provided grouped or non-grouped input.
+
+Fhirbase supports two modes (or methods) to put resources into the
+database: "insert" and "copy". Insert mode uses INSERT statements and
+copy mode uses COPY FROM STDIN. By default, Fhirbase uses insert mode
+for local files and copy mode for Bulk Data API loads.
+
+It does not matter for insert mode if your input is grouped or not. It
+will perform with same speed on both. Use it when you're not sure what
+type of input you have. Also insert mode is useful when you have
+duplicate IDs in your source files (rare case but happened couple of
+times). Insert mode will ignore duplicates and will persist only the
+first occurrence of a specific resource instance, ignoring other
+occurrences.
+
+Copy mode is intended to be used only with grouped inputs. When
+applied to grouped inputs, it's almost 3 times faster than insert
+mode. But it's same slower if it's being applied to non-grouped
+input.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+		if len(args) == 0 {
+			fmt.Println("No files provided")
+			return
+		}
+
+		LoadCommand(ctx, args)
+		fmt.Println("done")
+
+	},
+}
+
+type LoadConnectionConfig struct {
+	Mode         string
+	Numdl        uint
+	Memusage     bool
+	AcceptHeader string
+}
+
+func init() {
+	rootCmd.AddCommand(loadCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// loadCmd.PersistentFlags().String("foo", "", "A help for foo")
+	var LoadConnectionConfig = LoadConnectionConfig{
+		Mode:         "insert",
+		Numdl:        5,
+		Memusage:     false,
+		AcceptHeader: "application/fhir+json",
+	}
+	loadCmd.PersistentFlags().StringVarP(&LoadConnectionConfig.Mode, "mode", "m", "insert", "insert or copy")
+	loadCmd.PersistentFlags().UintVarP(&LoadConnectionConfig.Numdl, "numdl", "n", 5, "number of downloads")
+	loadCmd.PersistentFlags().BoolVarP(&LoadConnectionConfig.Memusage, "memusage", "", false, "memory usage")
+	loadCmd.PersistentFlags().StringVarP(&LoadConnectionConfig.AcceptHeader, "accept-header", "", "application/fhir+json", "Value for Accept HTTP header (should be application/ndjson for Cerner, application/fhir+json for Smart)")
+
+	viper.BindPFlag("mode", loadCmd.PersistentFlags().Lookup("mode"))
+	viper.BindPFlag("numdl", loadCmd.PersistentFlags().Lookup("numdl"))
+	viper.BindPFlag("memusage", loadCmd.PersistentFlags().Lookup("memusage"))
+	viper.BindPFlag("accept-header", loadCmd.PersistentFlags().Lookup("accept-header"))
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// loadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
 func openFile(fileName string) (*bundleFile, error) {
 	result := new(bundleFile)
 
 	f, err := os.OpenFile(fileName, os.O_RDONLY, 0644)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot open bundle file")
+		return nil, fmt.Errorf("Error opening file: %v", err)
 	}
 
 	result.file = f
@@ -79,35 +256,6 @@ func (bf *bundleFile) Rewind() {
 		bf.gzr.Close()
 		bf.gzr.Reset(bf.file)
 	}
-}
-
-const (
-	ndjsonBundleType bundleType = iota
-	fhirBundleType
-	singleResourceBundleType
-	unknownBundleType
-)
-
-type bundle interface {
-	Next() (map[string]interface{}, error)
-	Close()
-	Count() int
-}
-
-type loaderCb func(curType string, duration time.Duration)
-
-type loader interface {
-	Load(db *pgx.Conn, bndl bundle, cb loaderCb) error
-}
-
-type copyFromBundleSource struct {
-	bndl        bundle
-	err         error
-	res         map[string]interface{}
-	cb          loaderCb
-	currentRt   string
-	prevTime    time.Time
-	fhirVersion string
 }
 
 func isCompleteJSONObject(s string) bool {
@@ -260,13 +408,13 @@ func (s *copyFromBundleSource) Values() ([]interface{}, error) {
 		res, err := doTransform(res, s.fhirVersion)
 
 		if err != nil {
-			return nil, errors.Wrap(err, "cannot perform transform")
+			return nil, fmt.Errorf("Error transforming resource: %v", err)
 		}
 
 		id, ok := res["id"].(string)
 
 		if !ok {
-			id = uuid.NewV4().String()
+			id = uuid.New().String()
 		}
 
 		d := time.Since(s.prevTime)
@@ -282,11 +430,6 @@ func (s *copyFromBundleSource) Values() ([]interface{}, error) {
 
 func (s *copyFromBundleSource) Err() error {
 	return s.err
-}
-
-type singleResourceBundle struct {
-	file        *bundleFile
-	alreadyRead bool
 }
 
 func newSingleResourceBundle(f *bundleFile) (*singleResourceBundle, error) {
@@ -311,10 +454,10 @@ func (b *singleResourceBundle) Next() (map[string]interface{}, error) {
 		return nil, io.EOF
 	}
 
-	content, err := ioutil.ReadAll(b.file)
+	content, err := io.ReadAll(b.file)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot read file content")
+		return nil, fmt.Errorf("Error reading file: %v", err)
 	}
 
 	iter := jsoniter.ConfigFastest.BorrowIterator(content)
@@ -323,7 +466,7 @@ func (b *singleResourceBundle) Next() (map[string]interface{}, error) {
 	res := iter.Read()
 
 	if res == nil {
-		return nil, errors.Wrap(iter.Error, "cannot read resource from file")
+		return nil, fmt.Errorf("Error parsing JSON: %v", iter.Error)
 	}
 
 	resMap, ok := res.(map[string]interface{})
@@ -335,20 +478,6 @@ func (b *singleResourceBundle) Next() (map[string]interface{}, error) {
 	b.alreadyRead = true
 
 	return resMap, nil
-}
-
-type ndjsonBundle struct {
-	count   int
-	file    *bundleFile
-	reader  *bufio.Reader
-	curline int
-}
-
-type fhirBundle struct {
-	count   int
-	file    *bundleFile
-	curline int
-	iter    *jsoniter.Iterator
 }
 
 func (b *fhirBundle) Close() {
@@ -403,7 +532,7 @@ func newFhirBundle(f *bundleFile) (*fhirBundle, error) {
 	err := goToEntriesInFhirBundle(result.iter)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot find `entry` key in the bundle")
+		return nil, fmt.Errorf("cannot find `entry` key in the bundle: %v", err)
 	}
 
 	linesCount, err := countEntriesInBundle(result.iter)
@@ -412,13 +541,13 @@ func newFhirBundle(f *bundleFile) (*fhirBundle, error) {
 	result.iter.Reset(result.file)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot reset fhir bundle iterator")
+		return nil, fmt.Errorf("cannot count entries in the bundle: %v", err)
 	}
 
 	err = goToEntriesInFhirBundle(result.iter)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot find `entry` key in the bundle")
+		return nil, fmt.Errorf("cannot find `entry` key in the bundle: %v", err)
 	}
 
 	result.count = linesCount
@@ -464,7 +593,7 @@ func newNdjsonBundle(f *bundleFile) (*ndjsonBundle, error) {
 	linesCount, err := countLinesInReader(result.reader)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot count lines in ndjson bundle")
+		return nil, fmt.Errorf("cannot count lines in the file: %v", err)
 	}
 
 	result.file.Rewind()
@@ -473,13 +602,6 @@ func newNdjsonBundle(f *bundleFile) (*ndjsonBundle, error) {
 
 	return &result, nil
 }
-
-type multifileBundle struct {
-	count          int
-	bundles        []bundle
-	currentBndlIdx int
-}
-
 func newMultifileBundle(fileNames []string) (*multifileBundle, error) {
 	var result multifileBundle
 	result.bundles = make([]bundle, 0, len(fileNames))
@@ -553,22 +675,11 @@ func (b *multifileBundle) Next() (map[string]interface{}, error) {
 
 	currentBndl := b.bundles[b.currentBndlIdx]
 
-	// if b.currentBndl == nil {
-	// 	b.currentBndlIdx = b.currentBndlIdx + 1
+	if currentBndl == nil {
+		b.currentBndlIdx = b.currentBndlIdx + 1
 
-	// 	if b.currentBndlIdx > len(b.fileNames)-1 {
-	// 		return nil, io.EOF
-	// 	}
-
-	// 	currentBndl, err := newFhirBundle(b.fileNames[b.currentBndlIdx])
-
-	// 	if err != nil {
-	// 		b.currentBndlIdx = b.currentBndlIdx + 1
-	// 		return nil, errors.Wrap(err, "cannot create bundle")
-	// 	}
-
-	// 	b.currentBndl = currentBndl
-	// }
+		return b.Next()
+	}
 
 	res, err := currentBndl.Next()
 
@@ -581,7 +692,7 @@ func (b *multifileBundle) Next() (map[string]interface{}, error) {
 			return b.Next()
 		}
 
-		return nil, errors.Wrap(err, "cannot read next entry from bundle")
+		return nil, fmt.Errorf("Error reading resource: %v", err)
 	}
 
 	return res, nil
@@ -653,80 +764,148 @@ func countEntriesInBundle(iter *jsoniter.Iterator) (int, error) {
 	return count, nil
 }
 
-type copyLoader struct {
-	fhirVersion string
-}
-
-type insertLoader struct {
-	fhirVersion string
-}
-
-func (l *copyLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
+func (l *copyLoader) Load(ctx context.Context, db *pgxpool.Pool, bndl bundle, cb loaderCb) error {
 	src := newCopyFromBundleSource(bndl, l.fhirVersion, cb)
 
 	for src.ResourceType() != "" {
 		tableName := strings.ToLower(src.ResourceType())
 
-		_, err := db.CopyFrom(pgx.Identifier{tableName}, []string{"id", "txid", "status", "resource"}, src)
+		_, err := db.CopyFrom(context.Background(), pgx.Identifier{tableName}, []string{"id", "txid", "status", "resource"}, src)
 
 		if err != nil {
-			return errors.Wrap(err, "cannot perform COPY command")
+			return fmt.Errorf("Error copying data to %s: %v", tableName, err)
 		}
 	}
 
 	return nil
 }
 
-func (l *insertLoader) Load(db *pgx.Conn, bndl bundle, cb loaderCb) error {
-	batch := db.BeginBatch()
+// type JSONValue map[string]interface{}
+
+// func (j JSONValue) EncodeBinary(ci *pgtype.ConnInfo, buf []byte) ([]byte, error) {
+//     jsonData, err := jsoniter.Marshal(j)
+//     if err != nil {
+//         return nil, err
+//     }
+//     return append(buf, jsonData...), nil
+// }
+
+//	func (j *JSONValue) DecodeBinary(ci *pgtype.ConnInfo, src []byte) error {
+//	    return jsoniter.Unmarshal(src, j)
+//	}
+func (l *insertLoader) Load(ctx context.Context, db *pgxpool.Pool, bndl bundle, cb loaderCb) error {
+	file, err := os.OpenFile("output.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	conn, err := db.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Error acquiring connection: %v", err)
+	}
+	defer conn.Release()
+	batch := &pgx.Batch{}
 	curResource := uint(0)
 	totalCount := uint(bndl.Count())
 	batchSize := uint(2000)
-	var err error
 
-	for err == nil {
+	for {
 		startTime := time.Now()
 		var resource map[string]interface{}
 		resource, err = bndl.Next()
-
-		if err == nil {
-			transformedResource, err := doTransform(resource, l.fhirVersion)
-
-			if err != nil {
-				fmt.Printf("Error during FB transform: %v\n", err)
-			}
-
-			resourceType, _ := resource["resourceType"].(string)
-			tblName := strings.ToLower(resourceType)
-			id, ok := resource["id"].(string)
-
-			if !ok || id == "" {
-				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES (gen_random_uuid()::text, 0, 'created', $1) ON CONFLICT (id) DO NOTHING", tblName), []interface{}{transformedResource}, []pgtype.OID{pgtype.JSONBOID}, nil)
-			} else {
-				batch.Queue(fmt.Sprintf("INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2) ON CONFLICT (id) DO NOTHING", tblName), []interface{}{id, transformedResource}, []pgtype.OID{pgtype.TextOID, pgtype.JSONBOID}, nil)
-			}
-
-			if curResource%batchSize == 0 || curResource == totalCount-1 {
-				batch.Send(context.Background(), nil)
-				batch.Close()
-
-				if curResource != totalCount-1 {
-					batch = db.BeginBatch()
-				} else {
-					batch = nil
-				}
-			}
-
-			curResource++
-			cb(resourceType, time.Since(startTime))
-		} else {
-			return err
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return fmt.Errorf("Error retrieving next resource: %v", err)
 		}
+
+		transformedResource, err := doTransform(resource, l.fhirVersion)
+		if err != nil {
+			fmt.Printf("Error during FB transform: %v\n", err)
+			continue
+		}
+
+		resourceJSON, err := jsoniter.Marshal(transformedResource)
+
+		if err != nil {
+			return fmt.Errorf("Error marshaling transformed resource: %v", err)
+		}
+		resourceType, _ := resource["resourceType"].(string)
+		tblName := strings.ToLower(resourceType)
+		id, ok := resource["id"].(string)
+
+		var query string
+		var args []interface{} = make([]interface{}, 2)
+		var numberOfArgs int = 0
+		if !ok || id == "" {
+			query = fmt.Sprintf(
+				"INSERT INTO %s (id, txid, status, resource) VALUES (gen_random_uuid()::text, 0, 'created', $1) ON CONFLICT (id) DO NOTHING",
+				tblName,
+			)
+			args[0] = string(resourceJSON)
+			numberOfArgs = len(args)
+
+		} else {
+			query = fmt.Sprintf(
+				"INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2) ON CONFLICT (id) DO NOTHING",
+				tblName,
+			)
+			args[0] = id
+			args[1] = string(resourceJSON)
+			numberOfArgs = len(args)
+			// Use provided `id` and ensure 2 placeholders are used
+			// batch.Queue(
+			// 	fmt.Sprintf(
+			// 		"INSERT INTO %s (id, txid, status, resource) VALUES ($1, 0, 'created', $2) ON CONFLICT (id) DO NOTHING",
+			// 		tblName),
+			// 	[]interface{}{id, transformedResource},
+			// )
+		}
+		// Log query and args
+		// fmt.Printf("Queuing Query: %s\n", query)
+		// fmt.Printf("With Arguments: %v\n", args)
+		if numberOfArgs == 0 {
+			return fmt.Errorf("No arguments provided for query: %s", query)
+		}
+		// Add to batch
+		batch.Queue(query, args)
+		// check to see if the this entry in the batch has an equal number of arguments to numberOfArgs
+
+		thisQuery := batch.QueuedQueries[len(batch.QueuedQueries)-1]
+
+		if thisQuery == nil {
+			return fmt.Errorf("Error getting last query: %v", err)
+		}
+
+		if len(thisQuery.Arguments) != numberOfArgs {
+			thisQuery.Arguments = args
+		}
+
+		if curResource%batchSize == 0 || curResource == totalCount-1 {
+			conn, err := db.Acquire(ctx)
+			if err != nil {
+				return fmt.Errorf("Error acquiring connection: %v", err)
+			}
+
+			br := conn.Conn().SendBatch(ctx, batch)
+			if err := br.Close(); err != nil {
+				return fmt.Errorf("Error closing batch: %v", err)
+			}
+			batch = &pgx.Batch{}
+			conn.Release()
+		}
+
+		curResource++
+		cb(resourceType, time.Since(startTime))
 	}
 
 	if batch != nil {
-		batch.Send(context.Background(), nil)
-		batch.Close()
+		br := conn.SendBatch(ctx, batch)
+		err := br.Close()
+		if err != nil {
+			return fmt.Errorf("Error closing batch: %v", err)
+		}
 	}
 
 	return nil
@@ -761,10 +940,14 @@ func prewalkDirs(fileNames []string) ([]string, error) {
 	return result, nil
 }
 
-func loadFiles(files []string, ldr loader, memUsage bool) error {
-	db := GetConnection(nil)
-	defer db.Close()
+func loadFiles(ctx context.Context, files []string, ldr loader, memUsage bool) error {
+	database, err := db.GetConnection()
+	if err != nil {
+		fmt.Println("Failed to get connection config")
+		return fmt.Errorf("Failed to get connection config: %v", err)
+	}
 
+	defer database.Close()
 	startTime := time.Now()
 	bndl, err := newMultifileBundle(files)
 
@@ -777,39 +960,41 @@ func loadFiles(files []string, ldr loader, memUsage bool) error {
 	insertedCounts := make(map[string]uint)
 	currentIdx := 0
 
-	bars := mpb.New(
-		mpb.WithWidth(100),
-	)
+	bar := progressbar.NewOptions(totalCount,
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetDescription("Loading resources..."),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "[green]=[reset]",
+			SaucerHead:    "[green]>[reset]",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}))
 
-	bar := bars.AddBar(int64(totalCount),
-		mpb.AppendDecorators(
-			decor.Percentage(decor.WC{W: 3}),
-			decor.AverageETA(decor.ET_STYLE_MMSS, decor.WC{W: 6}),
-		),
-		mpb.PrependDecorators(decor.CountersNoUnit("%d / %d", decor.WC{W: 10})))
-
-	err = ldr.Load(db, bndl, func(curType string, duration time.Duration) {
+	err = ldr.Load(ctx, database, bndl, func(curType string, duration time.Duration) {
 		if memUsage && currentIdx%3000 == 0 {
 			PrintMemUsage()
 		}
 
 		currentIdx = currentIdx + 1
 		insertedCounts[curType] = insertedCounts[curType] + 1
-		bar.IncrBy(1, duration)
+		bar.Add(1)
 	})
 
 	if err != nil && err != io.EOF {
-		bars.Abort(bar, false)
+
 		return err
 	}
 
-	bars.Wait()
-
+	bar.Finish()
 	loadDuration := int(time.Since(startTime).Seconds())
 
-	submitLoadEvent(insertedCounts, loadDuration)
+	// submitLoadEvent(insertedCounts, loadDuration)
 
 	fmt.Printf("Done, inserted %d resources in %d seconds:\n", totalCount, loadDuration)
+	fmt.Println("")
 
 	tblw := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 
@@ -823,25 +1008,27 @@ func loadFiles(files []string, ldr loader, memUsage bool) error {
 }
 
 // LoadCommand loads FHIR schema into database
-func LoadCommand(c *cli.Context) error {
-	if c.NArg() == 0 {
-		cli.ShowCommandHelpAndExit(c, "load", 1)
-		return nil
-	}
+func LoadCommand(ctx context.Context, args []string) error {
+	// if c.NArg() == 0 {
+	// 	cli.ShowCommandHelpAndExit(ctx, c, "load", 1)
+	// 	return nil
+	// }
 
 	var bulkLoad bool
 
-	if strings.HasPrefix(c.Args().Get(0), "http") {
-		bulkLoad = true
-	} else {
-		bulkLoad = false
+	// check through the strings in args to see if any start with http
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "http") {
+			bulkLoad = true
+			break
+		}
 	}
 
-	fhirVersion := c.GlobalString("fhir")
-	mode := c.String("mode")
+	fhirVersion := viper.GetString("fhir")
+	mode := viper.GetString("mode")
 	var ldr loader
 
-	if bulkLoad && !c.IsSet("mode") {
+	if bulkLoad && !viper.IsSet("mode") {
 		mode = "copy"
 	}
 
@@ -859,38 +1046,38 @@ func LoadCommand(c *cli.Context) error {
 		}
 	}
 
-	memUsage := c.Bool("memusage")
+	memUsage := viper.GetBool("memusage")
 
-	if bulkLoad {
-		numWorkers := c.Uint("numdl")
-		acceptHdr := c.String("accept-header")
-		fileHndlrs, err := getBulkData(c.Args().Get(0), numWorkers, acceptHdr)
+	// if bulkLoad {
+	// 	numWorkers := viper.GetInt("numdl")
+	// 	acceptHdr := viper.GetString("accept-header")
+	// 	fileHndlrs, err := getBulkData(args, numWorkers, acceptHdr)
 
-		if err != nil {
-			return err
-		}
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-		files := make([]string, 0, len(fileHndlrs))
+	// 	files := make([]string, 0, len(fileHndlrs))
 
-		defer func() {
-			for _, fn := range files {
-				os.Remove(fn)
-			}
-		}()
+	// 	defer func() {
+	// 		for _, fn := range files {
+	// 			os.Remove(fn)
+	// 		}
+	// 	}()
 
-		for _, f := range fileHndlrs {
-			files = append(files, f.Name())
-			f.Close()
-		}
+	// 	for _, f := range fileHndlrs {
+	// 		files = append(files, f.Name())
+	// 		f.Close()
+	// 	}
 
-		return loadFiles(files, ldr, memUsage)
-	}
+	// 	return loadFiles(files, ldr, memUsage)
+	// }
 
-	files, err := prewalkDirs(c.Args())
+	files, err := prewalkDirs(args)
 
 	if err != nil {
-		return errors.Wrap(err, "cannot prewalk directories")
+		return fmt.Errorf("Error walking directories: %v", err)
 	}
 
-	return loadFiles(files, ldr, memUsage)
+	return loadFiles(ctx, files, ldr, memUsage)
 }

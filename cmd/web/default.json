@@ -1,0 +1,42 @@
+{
+	"title": "Fhirbase basics",
+
+	"queries": [
+		{
+			"title": "Select patients",
+			"query": "SELECT * \nFROM patient\nLIMIT 10"
+		},
+		{
+			"title": "Access attributes",
+			"query": "SELECT resource->'name', resource->'birthDate' \nFROM patient\nLIMIT 10"
+		},
+		{
+			"title": "Access with fhirpath",
+			"query": "SELECT fhirpath(resource, 'name.given') \nFROM patient\nLIMIT 10"
+		},
+		{
+			"title": "Count popular names",
+			"query": "SELECT COUNT(*), resource#>>'{name,0,given,0}'\nFROM patient\nGROUP BY resource#>>'{name,0,given,0}'\nORDER BY COUNT(*) DESC;"
+		},
+		{
+			"title": "Search by name",
+			"query": "SELECT id, resource->'name' \n FROM patient\n WHERE \n  fhirpath(resource,$$name.where(use='official').family$$)->>0  ilike 'Hick%';"
+		},
+		{
+			"title": "Observations",
+			"query": "SELECT resource#>>'{code,text}', fhirpath(resource, 'value.Quantity.value') FROM observation\n LIMIT 100 ;"
+		},
+		{
+			"title": "Codes function",
+			"query": "CREATE OR REPLACE FUNCTION get_codes (vs text) \n RETURNS TABLE (code text) \nAS $$\nBEGIN\n RETURN QUERY SELECT resource->>'code'  as code\n  FROM concept\n  WHERE resource->>'vs' = vs;\nEND; $$ \n \nLANGUAGE 'plpgsql';"
+		},
+		{
+			"title": "CMS example",
+			"query": "with\nperiod AS (\n  select '1985-01-01'::timestamptz as start,\n         '2000-01-01'::timestamptz as stop\n),\nvisit_codes AS (\n  SELECT resource->>'code'  as code\n  FROM concept\n  where resource->>'vs' in (\n    'urn:oid:2.16.840.1.113883.3.464.1003.101.12.1001',\n    'urn:oid:2.16.840.1.113883.3.526.3.1240',\n    'urn:oid:2.16.840.1.113883.3.464.1003.101.12.1025',\n    'urn:oid:2.16.840.1.113883.3.464.1003.101.12.1023',\n    'urn:oid:2.16.840.1.113883.3.464.1003.101.12.1016'\n  )\n),\nFecal_Occult_Blood_Test AS (\n   select get_codes('urn:oid:2.16.840.1.113883.3.464.1003.198.12.1011') as code\n),\nFlexible_Sigmoidoscopy AS (\n  select get_codes('urn:oid:2.16.840.1.113883.3.464.1003.198.12.1010') as code\n),\nMalignant_Neoplasm_of_Colon AS (\n  select get_codes('urn:oid:2.16.840.1.113883.3.464.1003.108.12.1001') as code\n),\nTotal_Colectomy AS (\n  select get_codes('urn:oid:2.16.840.1.113883.3.464.1003.198.12.1019') as code\n),\nFIT_DNA AS (\n  select get_codes('urn:oid:2.16.840.1.113883.3.464.1003.108.12.1039') as code\n),\nCT_Colonography AS (\n  select get_codes('urn:oid:2.16.840.1.113883.3.464.1003.108.12.1038') as code\n),\nColonoscopy AS (\n  select get_codes('urn:oid:2.16.840.1.113883.3.464.1003.108.12.1020') as code\n),\npopulation AS (\n  select e.resource\n  from encounter e\n  where\n  --   resource#>>'{type,0,coding,0,code}' in (select code from visit_codes)\n  -- AND\n    (e.resource#>>'{period,start}')::timestamptz >= (select start from period limit 1)\n  AND\n    (e.resource#>>'{period,start}')::timestamptz <= (select stop from period limit 1)\n),\nFlexible_Sigmology_per  AS (\n  SELECT pr.*\n  FROM procedure pr\n   JOIN population p\n     ON p.resource#>>'{subject,id}' = pr.resource#>>'{subject,id}'\n  WHERE pr.resource#>>'{code,coding,0,code}' in ( select code from Flexible_Sigmoidoscopy)\n     AND pr.resource->>'status' = 'completed'\n     AND (pr.resource#>>'{performed,Period,end}')::timestamptz >= (select start - '5year'::interval from period limit 1)\n),\nColonoscopy_per  AS (\n  SELECT pr.*\n    FROM procedure pr\n  JOIN population p\n    ON p.resource#>>'{subject,id}' = pr.resource#>>'{subject,id}'\n  WHERE pr.resource#>>'{code,coding,0,code}' in ( select code from Colonoscopy)\n    AND pr.resource->>'status' = 'completed'\n    AND (pr.resource#>>'{performed,Period,end}')::timestamptz >= (select start - '5year'::interval from period limit 1)\n)\nSELECT\n  pt.id,\n  pt.resource#>>'{name,0,given,0}',\n  pt.resource#>>'{name,0,family}',\n  pt.resource#>>'{gender}',\n  age(now(),(pt.resource#>>'{birthDate}')::timestamp)::text\nFROM (\n  select * from flexible_sigmology_per\n  union\n  select * from colonoscopy_per\n) pr\nJOIN patient pt\n  ON pr.resource#>>'{subject,id}' = pt.id"
+		},
+		{
+			"title": "High-risk Patients",
+			"query": "-- returns a list of patients\n-- who meets following criterias:\n-- male\n-- active or former smoker\n-- age > 45 yrs\n\nSELECT DISTINCT(p.id), p.resource#>'{name,0}'\nFROM patient p\nJOIN observation o ON o.resource#>>'{subject,id}' = p.id\nWHERE (o.resource @> '{\"code\": {\"coding\": [{\"code\": \"72166-2\"}]}}'::jsonb) -- LOINC: Smoking status\n  AND ((o.resource @> '{\"value\": {\"CodeableConcept\": { \"coding\": [{\"code\": \"449868002\"}]}}}') -- SNOMED: Current every day smoker\n       OR (o.resource @> '{\"value\": {\"CodeableConcept\": { \"coding\": [{\"code\": \"8517006\"}]}}}')) -- SNOMED: Former smoker\n  AND (extract(year from age(now(), (p.resource->>'birthDate')::date)) > 45) -- patient's age > 45\n  AND (p.resource->>'gender' = 'male'); -- patient gender is male\n"
+		}
+	]
+}
